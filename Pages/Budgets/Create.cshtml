@@ -1,0 +1,69 @@
+@page
+@model FinTrack.Pages.Budgets.CreateModel
+
+<h2>Create Budget</h2>
+
+<form method="post">
+
+    <div class="mb-3">
+
+        <label asp-for="Budget.CategoryId"></label>
+
+        <select asp-for="Budget.CategoryId"
+                asp-items="Model.Categories"
+                class="form-select">
+
+            <option value="">-- Select Category --</option>
+
+        </select>
+
+        <span asp-validation-for="Budget.CategoryId"
+              class="text-danger"></span>
+
+    </div>
+
+    <div class="mb-3">
+
+        <label asp-for="Budget.BudgetMonth"></label>
+
+        <input asp-for="Budget.BudgetMonth"
+               class="form-control"/>
+
+    </div>
+
+    <div class="mb-3">
+
+        <label asp-for="Budget.BudgetYear"></label>
+
+        <input asp-for="Budget.BudgetYear"
+               class="form-control"/>
+
+    </div>
+
+    <div class="mb-3">
+
+        <label asp-for="Budget.LimitAmount"></label>
+
+        <input asp-for="Budget.LimitAmount"
+               class="form-control"/>
+
+        <span asp-validation-for="Budget.LimitAmount"
+              class="text-danger"></span>
+
+    </div>
+
+    <button class="btn btn-success">
+        Save
+    </button>
+
+    <a asp-page="Index"
+       class="btn btn-secondary">
+        Cancel
+    </a>
+
+</form>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial"/>
+}

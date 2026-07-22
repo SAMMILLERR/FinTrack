@@ -1,0 +1,62 @@
+@page
+@model FinTrack.Pages.Budgets.EditModel
+
+<h2>Edit Budget</h2>
+
+<form method="post">
+
+    <input asp-for="Budget.BudgetId" type="hidden"/>
+
+    <div class="mb-3">
+
+        <label asp-for="Budget.CategoryId"></label>
+
+        <select asp-for="Budget.CategoryId"
+                asp-items="Model.Categories"
+                class="form-select">
+        </select>
+
+    </div>
+
+    <div class="mb-3">
+
+        <label asp-for="Budget.BudgetMonth"></label>
+
+        <input asp-for="Budget.BudgetMonth"
+               class="form-control"/>
+
+    </div>
+
+    <div class="mb-3">
+
+        <label asp-for="Budget.BudgetYear"></label>
+
+        <input asp-for="Budget.BudgetYear"
+               class="form-control"/>
+
+    </div>
+
+    <div class="mb-3">
+
+        <label asp-for="Budget.LimitAmount"></label>
+
+        <input asp-for="Budget.LimitAmount"
+               class="form-control"/>
+
+    </div>
+
+    <button class="btn btn-warning">
+        Update
+    </button>
+
+    <a asp-page="Index"
+       class="btn btn-secondary">
+        Cancel
+    </a>
+
+</form>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial"/>
+}

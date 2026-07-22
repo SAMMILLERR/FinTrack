@@ -1,0 +1,199 @@
+@page
+@model FinTrack.Pages.Budgets.IndexModel
+
+@{
+    ViewData["Title"] = "Budgets";
+}
+
+<h2 class="mb-4">
+    Budget Management
+</h2>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <div>
+
+        <h5 class="text-muted">
+            Manage your monthly budgets
+        </h5>
+
+    </div>
+
+    <a asp-page="Create"
+       class="btn btn-primary">
+
+        <i class="bi bi-plus-circle"></i>
+
+        Create Budget
+
+    </a>
+
+</div>
+
+<table class="table table-hover table-bordered align-middle shadow-sm">
+
+    <thead class="table-dark">
+
+        <tr>
+
+            <th>Category</th>
+
+            <th>Month</th>
+
+            <th>Budget</th>
+
+            <th>Spent</th>
+
+            <th>Remaining</th>
+
+            <th width="220">Progress</th>
+
+            <th>Status</th>
+
+            <th width="150">Actions</th>
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+@foreach (var item in Model.Budgets)
+{
+    var percentage = item.LimitAmount == 0
+        ? 0
+        : (item.SpentAmount / item.LimitAmount) * 100;
+
+    var progressWidth = Math.Min(percentage, 100);
+
+    <tr>
+
+        <td>
+
+            <strong>@item.CategoryName</strong>
+
+        </td>
+
+       <td>
+    @(new DateTime(item.BudgetYear, item.BudgetMonth, 1).ToString("MMMM yyyy"))
+</td>
+
+        <td class="fw-bold">
+
+            ₹ @item.LimitAmount.ToString("N2")
+
+        </td>
+
+        <td>
+
+            ₹ @item.SpentAmount.ToString("N2")
+
+        </td>
+
+        <td>
+
+            @if (item.RemainingAmount >= 0)
+            {
+                <span class="text-success fw-bold">
+
+                    ₹ @item.RemainingAmount.ToString("N2")
+
+                </span>
+            }
+            else
+            {
+                <span class="text-danger fw-bold">
+
+                    Over by ₹ @Math.Abs(item.RemainingAmount).ToString("N2")
+
+                </span>
+            }
+
+        </td>
+
+        <td>
+
+            <div class="progress" style="height:24px;">
+
+                <div class="progress-bar
+                    @(percentage >= 100 ? "bg-danger" :
+                      percentage >= 80 ? "bg-warning text-dark" :
+                      "bg-success")"
+
+                     role="progressbar"
+                     style="width:@progressWidth%">
+
+                    @percentage.ToString("0")%
+
+                </div>
+
+            </div>
+
+        </td>
+
+        <td>
+
+            @if (percentage < 80)
+            {
+                <span class="badge bg-success">
+
+                    Healthy
+
+                </span>
+            }
+            else if (percentage < 100)
+            {
+                <span class="badge bg-warning text-dark">
+
+                    Near Limit
+
+                </span>
+            }
+            else
+            {
+                <span class="badge bg-danger">
+
+                    Over Budget
+
+                </span>
+            }
+
+        </td>
+
+        <td>
+
+            <a asp-page="Edit"
+               asp-route-id="@item.BudgetId"
+               class="btn btn-warning btn-sm">
+
+                <i class="bi bi-pencil-square"></i>
+
+            </a>
+
+            <a asp-page="Delete"
+               asp-route-id="@item.BudgetId"
+               class="btn btn-danger btn-sm">
+
+                <i class="bi bi-trash"></i>
+
+            </a>
+
+        </td>
+
+    </tr>
+}
+
+    </tbody>
+
+</table>
+
+@if (!Model.Budgets.Any())
+{
+    <div class="alert alert-info mt-4">
+
+        <i class="bi bi-info-circle"></i>
+
+        No budgets have been created yet.
+
+    </div>
+}

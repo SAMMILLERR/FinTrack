@@ -1,0 +1,103 @@
+@page
+@model FinTrack.Pages.Transactions.EditModel
+
+<h2>Edit @Model.Type Transaction</h2>
+
+<div class="mb-3">
+
+    <a asp-page="Create"
+       asp-route-type="Income"
+       class="btn @(Model.Type=="Income" ? "btn-success" : "btn-outline-success")">
+
+        Income
+
+    </a>
+
+    <a asp-page="Create"
+       asp-route-type="Expense"
+       class="btn @(Model.Type=="Expense" ? "btn-danger" : "btn-outline-danger")">
+
+        Expense
+
+    </a>
+
+</div>
+
+<form method="post">
+
+   <input asp-for="Transaction.TransactionId" type="hidden"/>
+
+<input asp-for="Type" type="hidden"/>
+
+    <div class="mb-3">
+
+        <label asp-for="Transaction.CategoryId"></label>
+
+        <select asp-for="Transaction.CategoryId"
+                asp-items="Model.Categories"
+                class="form-select">
+
+            <option value="">-- Select Category --</option>
+
+        </select>
+
+        <span asp-validation-for="Transaction.CategoryId"
+              class="text-danger"></span>
+
+    </div>
+
+    <div class="mb-3">
+
+        <label asp-for="Transaction.Amount"></label>
+
+        <input asp-for="Transaction.Amount"
+               class="form-control"/>
+
+        <span asp-validation-for="Transaction.Amount"
+              class="text-danger"></span>
+
+    </div>
+
+    <div class="mb-3">
+
+        <label asp-for="Transaction.TransactionDate"></label>
+
+        <input asp-for="Transaction.TransactionDate"
+               type="date"
+               class="form-control"/>
+
+        <span asp-validation-for="Transaction.TransactionDate"
+              class="text-danger"></span>
+
+    </div>
+
+    <div class="mb-3">
+
+        <label asp-for="Transaction.Description"></label>
+
+        <textarea asp-for="Transaction.Description"
+                  class="form-control">
+        </textarea>
+
+    </div>
+
+    <button type="submit"
+            class="btn btn-primary">
+
+        Update
+
+    </button>
+
+    <a asp-page="Index"
+       class="btn btn-secondary">
+
+        Cancel
+
+    </a>
+
+</form>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial"/>
+}

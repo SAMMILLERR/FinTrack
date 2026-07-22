@@ -1,0 +1,50 @@
+@page
+@model FinTrack.Pages.Categories.IndexModel
+
+<h2>Categories</h2>
+
+<p>
+    <a href="/Categories/Create" class="btn btn-primary">
+        Create New Category
+    </a>
+</p>
+
+<table class="table table-bordered table-striped">
+
+    <thead>
+        <tr>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Active</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+
+    <tbody>
+
+@foreach (var item in Model.Categories)
+{
+        <tr>
+            <td>@item.CategoryId</td>
+            <td>@item.CategoryName</td>
+            <td>@item.CategoryTypeName</td>
+            <td>@item.IsActive</td>
+
+            <td>
+                <a href="/Categories/Edit?id=@item.CategoryId"
+                   class="btn btn-warning btn-sm">
+                    Edit
+                </a>
+
+                <a href="/Categories/Delete?id=@item.CategoryId"
+                   class="btn btn-danger btn-sm">
+                    Delete
+                </a>
+            </td>
+        </tr>
+}
+
+    </tbody>
+
+</table>

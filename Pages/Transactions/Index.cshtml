@@ -1,0 +1,358 @@
+@page
+@model FinTrack.Pages.Transactions.IndexModel
+
+@if (User.IsInRole("Admin"))
+{
+    <h2 class="mb-4">All Transactions</h2>
+}
+else
+{
+    <h2 class="mb-4">Transactions</h2>
+}
+
+@if (!User.IsInRole("Admin"))
+{
+    <div class="mb-4">
+
+        <a asp-page="Create"
+           asp-route-type="Income"
+           class="btn btn-success me-2">
+
+            + Income
+
+        </a>
+
+        <a asp-page="Create"
+           asp-route-type="Expense"
+           class="btn btn-danger">
+
+            + Expense
+
+        </a>
+
+    </div>
+}
+
+<form method="get" class="row g-3 mb-4">
+
+    <div class="col-md-3">
+
+        <label class="form-label">
+            From Date
+        </label>
+
+        <input asp-for="FromDate"
+               type="date"
+               class="form-control" />
+
+    </div>
+
+    <div class="col-md-3">
+
+        <label class="form-label">
+            To Date
+        </label>
+
+        <input asp-for="ToDate"
+               type="date"
+               class="form-control" />
+
+    </div>
+
+    <div class="col-md-3">
+
+        <label class="form-label">
+            Category
+        </label>
+
+        <select asp-for="CategoryId"
+                class="form-select">
+
+            <option value="">All</option>
+
+            @foreach (var category in Model.Categories)
+            {
+                <option value="@category.CategoryId">
+                    @category.CategoryName
+                </option>
+            }
+
+        </select>
+
+    </div>
+
+    <div class="col-md-2">
+
+        <label class="form-label">
+            Type
+        </label>
+
+        <select asp-for="Type"
+                class="form-select">
+
+            <option value="">All</option>
+
+            <option value="Income">Income</option>
+
+            <option value="Expense">Expense</option>
+
+        </select>
+
+    </div>
+
+    <div class="col-md-1 d-flex align-items-end">
+
+        <button class="btn btn-primary w-100">
+
+            Search
+
+        </button>
+
+    </div>
+
+</form>
+
+@if (!User.IsInRole("Admin"))
+{
+    <div class="row mb-5">
+
+        <div class="col-md-4">
+
+            <div class="card text-bg-success shadow">
+
+                <div class="card-body text-center">
+
+                    <h6>Total Income</h6>
+
+                    <h2>₹ @Model.Summary.TotalIncome</h2>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-4">
+
+            <div class="card text-bg-danger shadow">
+
+                <div class="card-body text-center">
+
+                    <h6>Total Expense</h6>
+
+                    <h2>₹ @Model.Summary.TotalExpense</h2>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-4">
+
+            <div class="card text-bg-primary shadow">
+
+                <div class="card-body text-center">
+
+                    <h6>Balance</h6>
+
+                    <h2>₹ @Model.Summary.Balance</h2>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <hr />
+}
+
+<h3 class="mb-3">
+    Transaction List
+</h3>
+
+<table class="table table-bordered table-hover">
+
+    <thead class="table-dark">
+
+        <tr>
+
+            <th>Date</th>
+
+            @if (User.IsInRole("Admin"))
+            {
+                <th>User</th>
+            }
+
+            <th>Category</th>
+
+            <th>Type</th>
+
+            <th>Amount</th>
+
+            <th>Description</th>
+
+            @if (!User.IsInRole("Admin"))
+            {
+                <th>Actions</th>
+            }
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+@foreach (var item in Model.Transactions)
+{
+    <tr>
+
+        <td>@item.TransactionDate.ToShortDateString()</td>
+
+        @if (User.IsInRole("Admin"))
+        {
+            <td>@item.UserName</td>
+        }
+
+        <td>@item.CategoryName</td>
+
+        <td>
+
+            @if(item.TransactionType=="Income")
+            {
+                <span class="badge bg-success">
+                    Income
+                </span>
+            }
+            else
+            {
+                <span class="badge bg-danger">
+                    Expense
+                </span>
+            }
+
+        </td>
+
+        <td>
+
+            @if(item.TransactionType=="Income")
+            {
+                <span class="text-success fw-bold">
+
+                    + ₹ @item.Amount
+
+                </span>
+            }
+            else
+            {
+                <span class="text-danger fw-bold">
+
+                    - ₹ @item.Amount
+
+                </span>
+            }
+
+        </td>
+
+        <td>
+
+            @item.Description
+
+        </td>
+
+        @if (!User.IsInRole("Admin"))
+        {
+            <td>
+
+                <a asp-page="Edit"
+                   asp-route-id="@item.TransactionId"
+                   class="btn btn-warning btn-sm">
+
+                    Edit
+
+                </a>
+
+                <a asp-page="Delete"
+                   asp-route-id="@item.TransactionId"
+                   class="btn btn-danger btn-sm">
+
+                    Delete
+
+                </a>
+
+            </td>
+        }
+
+    </tr>
+}
+
+    </tbody>
+
+</table>
+@if (Model.TotalPages > 1)
+{
+    <nav class="mt-4">
+
+        <ul class="pagination justify-content-center">
+
+            <!-- Previous -->
+
+            <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+
+                <a class="page-link"
+                   asp-page="./Index"
+                   asp-route-CurrentPage="@(Model.CurrentPage - 1)"
+                   asp-route-FromDate="@Model.FromDate"
+                   asp-route-ToDate="@Model.ToDate"
+                   asp-route-CategoryId="@Model.CategoryId"
+                   asp-route-Type="@Model.Type">
+
+                    Previous
+
+                </a>
+
+            </li>
+
+            @for (int i = 1; i <= Model.TotalPages; i++)
+            {
+                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+
+                    <a class="page-link"
+                       asp-page="./Index"
+                       asp-route-CurrentPage="@i"
+                       asp-route-FromDate="@Model.FromDate"
+                       asp-route-ToDate="@Model.ToDate"
+                       asp-route-CategoryId="@Model.CategoryId"
+                       asp-route-Type="@Model.Type">
+
+                        @i
+
+                    </a>
+
+                </li>
+            }
+
+            <!-- Next -->
+
+            <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+
+                <a class="page-link"
+                   asp-page="./Index"
+                   asp-route-CurrentPage="@(Model.CurrentPage + 1)"
+                   asp-route-FromDate="@Model.FromDate"
+                   asp-route-ToDate="@Model.ToDate"
+                   asp-route-CategoryId="@Model.CategoryId"
+                   asp-route-Type="@Model.Type">
+
+                    Next
+
+                </a>
+
+            </li>
+
+        </ul>
+
+    </nav>
+}

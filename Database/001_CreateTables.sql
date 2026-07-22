@@ -1,0 +1,10 @@
+USE FinTrack;
+GO
+
+CREATE TABLE Roles
+(
+    RoleId INT IDENTITY(1,1) PRIMARY KEY,
+
+    RoleName NVARCHAR(30) NOT NULL UNIQUE
+);
+GO

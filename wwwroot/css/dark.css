@@ -1,0 +1,56 @@
+body.dark-mode{
+    background:#121212 !important;
+    color:#f1f1f1 !important;
+}
+
+body.dark-mode .card{
+    background:#1f1f1f;
+    color:white;
+}
+
+body.dark-mode .table{
+    color:white;
+}
+
+body.dark-mode .table-bordered{
+    border-color:#555;
+}
+
+body.dark-mode .table-dark{
+    background:#222;
+}
+
+body.dark-mode .navbar{
+    background:#000 !important;
+}
+
+body.dark-mode .footer{
+    background:#000 !important;
+    color:white;
+}
+
+body.dark-mode .form-control,
+body.dark-mode .form-select{
+    background:#222;
+    color:white;
+    border-color:#555;
+}
+
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus{
+    background:#222;
+    color:white;
+}
+
+body.dark-mode .alert{
+    color:white;
+}
+
+body.dark-mode a{
+    color:#6ea8fe;
+}
+
+body.dark-mode .modal-content{
+    background:#1f1f1f;
+    color:white;
+}
