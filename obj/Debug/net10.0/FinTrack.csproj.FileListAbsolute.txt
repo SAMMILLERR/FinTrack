@@ -132,3 +132,4 @@ D:\FinTrack\obj\Debug\net10.0\FinTrack.pdb
 D:\FinTrack\obj\Debug\net10.0\FinTrack.genruntimeconfig.cache
 D:\FinTrack\obj\Debug\net10.0\ref\FinTrack.dll
 D:\FinTrack\obj\Debug\net10.0\compressed\ci2165jmlv-{0}-spkw1vmcc1-spkw1vmcc1.gz
+D:\FinTrack\obj\Debug\net10.0\FinTrack.sourcelink.json

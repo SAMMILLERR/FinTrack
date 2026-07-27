@@ -28,6 +28,14 @@
 
                 </div>
 
+                @if (!string.IsNullOrEmpty(Model.RateLimitError))
+                {
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        @Model.RateLimitError
+                    </div>
+                }
+
                 <form method="post">
 
                     <div asp-validation-summary="ModelOnly"
@@ -57,6 +65,7 @@
                         </label>
 
                         <input asp-for="Input.Password"
+                               type="password"
                                class="form-control form-control-lg"
                                placeholder="Enter your password" />
 
@@ -71,8 +80,7 @@
                         <button type="submit"
                                 class="btn btn-primary btn-lg">
 
-                            <i class="bi bi-box-arrow-in-right"></i>
-
+                            <i class="bi bi-box-arrow-in-right me-2"></i>
                             Login
 
                         </button>
@@ -91,9 +99,7 @@
 
                     <a asp-page="/Account/Register"
                        class="fw-bold text-decoration-none">
-
                         Register
-
                     </a>
 
                 </div>

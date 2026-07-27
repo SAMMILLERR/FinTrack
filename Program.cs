@@ -1,43 +1,90 @@
-using FinTrack.Repositories;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.Data.SqlClient;
 using FinTrack.Data;
+using FinTrack.Repositories;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddRazorPages();
+builder.Services.AddControllersWithViews();
+
+builder.Services.AddMemoryCache();
+
 builder.Services.AddScoped<IDbConnectionFactory, SqlConnectionFactory>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<IBudgetRepository, BudgetRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
 
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.LoginPath = "/Account/Login";
-        options.AccessDeniedPath = "/Account/Login";
+        options.AccessDeniedPath = "/Account/AccessDenied";
         options.LogoutPath = "/Account/Logout";
     });
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+  options.OnRejected = async (context, token) =>
+{
+    Console.WriteLine("========== RATE LIMIT HIT ==========");
+
+    context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+    context.HttpContext.Response.ContentType = "text/plain";
+
+    await context.HttpContext.Response.WriteAsync(
+        "Too many login attempts. Wait one minute.",
+        token);
+};
+
+    options.GlobalLimiter =
+    PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+    {
+        Console.WriteLine(
+            $"Limiter: {httpContext.Request.Method} {httpContext.Request.Path}");
+
+        if (httpContext.Request.Path.Equals("/Account/Login", StringComparison.OrdinalIgnoreCase)
+            && HttpMethods.IsPost(httpContext.Request.Method))
+        {
+            Console.WriteLine("LOGIN POST MATCHED");
+
+            return RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 3,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                });
+        }
+
+        return RateLimitPartition.GetNoLimiter("NoLimit");
+    });
+});
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 
 app.UseRouting();
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 
@@ -48,9 +95,11 @@ app.Use(async (context, next) =>
         var repository =
             context.RequestServices.GetRequiredService<IUserRepository>();
 
-        var idClaim = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        var idClaim =
+            context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
 
-        if (idClaim != null && int.TryParse(idClaim.Value, out int userId))
+        if (idClaim != null &&
+            int.TryParse(idClaim.Value, out int userId))
         {
             var user = await repository.GetByIdAsync(userId);
 
@@ -60,7 +109,6 @@ app.Use(async (context, next) =>
                     CookieAuthenticationDefaults.AuthenticationScheme);
 
                 context.Response.Redirect("/Account/Login?message=deactivated");
-
                 return;
             }
         }
@@ -72,7 +120,8 @@ app.Use(async (context, next) =>
 app.UseAuthorization();
 
 app.MapStaticAssets();
+
 app.MapRazorPages()
-   .WithStaticAssets();
+    .WithStaticAssets();
 
 app.Run();

@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace FinTrack.Pages.Reports;
 
-[Authorize]
+[Authorize(Roles ="User")]
 public class IndexModel : PageModel
 {
     private readonly IReportRepository _repository;

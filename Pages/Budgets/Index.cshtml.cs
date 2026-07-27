@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace FinTrack.Pages.Budgets;
 
-[Authorize]
+[Authorize(Roles ="User")]
 public class IndexModel : PageModel
 {
     private readonly IBudgetRepository _repository;
