@@ -1,0 +1,303 @@
+@page "/transactions/edit/{Id:int}"
+@rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
+
+@attribute [Authorize]
+
+@using System.Security.Claims
+@using FinTrack.Models
+@using FinTrack.Services.Interfaces
+
+@inject ITransactionService TransactionService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Edit Transaction</PageTitle>
+
+@if (IsLoading)
+{
+    <div class="alert alert-info">
+        Loading transaction...
+    </div>
+}
+else if (NotFound)
+{
+    <div class="alert alert-danger">
+        Transaction not found.
+    </div>
+
+    <button type="button"
+            class="btn btn-secondary"
+            @onclick="Cancel">
+
+        Back
+
+    </button>
+}
+else
+{
+    <h2 class="mb-4">
+        Edit @Type Transaction
+    </h2>
+
+    <div class="mb-3">
+
+        <button type="button"
+                class="btn @(Type == "Income" ? "btn-success" : "btn-outline-success") me-2"
+                @onclick="SetIncome">
+
+            Income
+
+        </button>
+
+        <button type="button"
+                class="btn @(Type == "Expense" ? "btn-danger" : "btn-outline-danger")"
+                @onclick="SetExpense">
+
+            Expense
+
+        </button>
+
+    </div>
+
+    <EditForm Model="Transaction"
+              OnValidSubmit="UpdateTransaction"
+              FormName="transactionEditForm">
+
+        <DataAnnotationsValidator />
+
+        <ValidationSummary />
+
+        <div class="mb-3">
+
+            <label class="form-label">
+                Category
+            </label>
+
+            <InputSelect @bind-Value="Transaction.CategoryId"
+                         class="form-select">
+
+                <option value="0">
+                    -- Select Category --
+                </option>
+
+                @foreach (var category in Categories)
+                {
+                    <option value="@category.CategoryId">
+                        @category.CategoryName
+                    </option>
+                }
+
+            </InputSelect>
+
+            <ValidationMessage For="@(() => Transaction.CategoryId)" />
+
+        </div>
+
+        <div class="mb-3">
+
+            <label class="form-label">
+                Amount
+            </label>
+
+            <InputNumber @bind-Value="Transaction.Amount"
+                         class="form-control" />
+
+            <ValidationMessage For="@(() => Transaction.Amount)" />
+
+        </div>
+
+        <div class="mb-3">
+
+            <label class="form-label">
+                Transaction Date
+            </label>
+
+            <InputDate @bind-Value="Transaction.TransactionDate"
+                       class="form-control" />
+
+            <ValidationMessage For="@(() => Transaction.TransactionDate)" />
+
+        </div>
+
+        <div class="mb-3">
+
+            <label class="form-label">
+                Description
+            </label>
+
+            <InputTextArea @bind-Value="Transaction.Description"
+                           class="form-control" />
+
+            <ValidationMessage For="@(() => Transaction.Description)" />
+
+        </div>
+
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="alert alert-danger">
+                @ErrorMessage
+            </div>
+        }
+
+        <button type="submit"
+                class="btn btn-primary"
+                disabled="@IsSaving">
+
+            @(IsSaving ? "Updating..." : "Update")
+
+        </button>
+
+        <button type="button"
+                class="btn btn-secondary ms-2"
+                disabled="@IsSaving"
+                @onclick="Cancel">
+
+            Cancel
+
+        </button>
+
+    </EditForm>
+}
+
+@code
+{
+    [Parameter]
+    public int Id { get; set; }
+
+    private Transaction Transaction { get; set; } = new();
+
+    private List<Category> Categories { get; set; } = new();
+
+    private string Type { get; set; } = "Expense";
+
+    private bool IsLoading = true;
+
+    private bool IsSaving;
+
+    private bool NotFound;
+
+    private string? ErrorMessage;
+
+    private int UserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authenticationState =
+                await AuthenticationStateProvider
+                    .GetAuthenticationStateAsync();
+
+            var claim =
+                authenticationState.User.FindFirst(
+                    ClaimTypes.NameIdentifier);
+
+            if (claim == null ||
+                !int.TryParse(
+                    claim.Value,
+                    out UserId))
+            {
+                ErrorMessage =
+                    "Unable to identify the current user.";
+
+                return;
+            }
+
+            var transaction =
+                await TransactionService
+                    .GetTransactionAsync(
+                        Id,
+                        UserId);
+
+            if (transaction == null)
+            {
+                NotFound = true;
+                return;
+            }
+
+            Transaction = transaction;
+
+            Type = Transaction.TransactionType;
+
+            await LoadCategories();
+        }
+        catch (Exception)
+        {
+            ErrorMessage =
+                "Unable to load the transaction right now.";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task SetIncome()
+    {
+        await ChangeType("Income");
+    }
+
+    private async Task SetExpense()
+    {
+        await ChangeType("Expense");
+    }
+
+    private async Task ChangeType(string type)
+    {
+        Type = type;
+
+        Transaction.TransactionType = Type;
+
+        Transaction.CategoryId = 0;
+
+        ErrorMessage = null;
+
+        await LoadCategories();
+    }
+
+    private async Task LoadCategories()
+    {
+        var categories =
+            await TransactionService
+                .GetCategoriesByTypeAsync(Type);
+
+        Categories =
+            categories.ToList();
+    }
+
+    private async Task UpdateTransaction()
+    {
+        try
+        {
+            IsSaving = true;
+
+            ErrorMessage = null;
+
+            Transaction.UserId = UserId;
+
+            Transaction.TransactionType = Type;
+
+            await TransactionService
+                .UpdateTransactionAsync(
+                    Transaction);
+
+            Navigation.NavigateTo(
+                "/transactions");
+        }
+        catch (Exception)
+        {
+            ErrorMessage =
+                "Unable to update the transaction right now.";
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo(
+            "/transactions");
+    }
+}

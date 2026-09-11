@@ -9,3 +9,4 @@ public interface IReportRepository
     int month,
     int year);
 }
+

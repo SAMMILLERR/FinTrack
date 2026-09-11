@@ -48,15 +48,10 @@ D:\FinTrack\obj\Debug\net10.0\FinTrack.AssemblyInfoInputs.cache
 D:\FinTrack\obj\Debug\net10.0\FinTrack.AssemblyInfo.cs
 D:\FinTrack\obj\Debug\net10.0\FinTrack.csproj.CoreCompileInputs.cache
 D:\FinTrack\obj\Debug\net10.0\FinTrack.MvcApplicationPartsAssemblyInfo.cache
-D:\FinTrack\obj\Debug\net10.0\FinTrack.RazorAssemblyInfo.cache
-D:\FinTrack\obj\Debug\net10.0\FinTrack.RazorAssemblyInfo.cs
 D:\FinTrack\obj\Debug\net10.0\rjimswa.dswa.cache.json
 D:\FinTrack\obj\Debug\net10.0\rjsmrazor.dswa.cache.json
 D:\FinTrack\obj\Debug\net10.0\rjsmcshtml.dswa.cache.json
-D:\FinTrack\obj\Debug\net10.0\scopedcss\Pages\Shared\_Layout.cshtml.rz.scp.css
 D:\FinTrack\obj\Debug\net10.0\scopedcss\bundle\FinTrack.styles.css
-D:\FinTrack\obj\Debug\net10.0\scopedcss\projectbundle\FinTrack.bundle.scp.css
-D:\FinTrack\obj\Debug\net10.0\compressed\r5qhz0l8vs-{0}-b9sayid5wm-b9sayid5wm.gz
 D:\FinTrack\obj\Debug\net10.0\compressed\m3106canhy-{0}-61n19gt1b8-61n19gt1b8.gz
 D:\FinTrack\obj\Debug\net10.0\compressed\nx0gf4b41j-{0}-xtxxf3hu2r-xtxxf3hu2r.gz
 D:\FinTrack\obj\Debug\net10.0\compressed\n5mbej52gc-{0}-bqjiyaj88i-bqjiyaj88i.gz
@@ -118,8 +113,6 @@ D:\FinTrack\obj\Debug\net10.0\compressed\bpoxonzxfw-{0}-2z0ns9nrw6-2z0ns9nrw6.gz
 D:\FinTrack\obj\Debug\net10.0\compressed\sk47otym0s-{0}-muycvpuwrr-muycvpuwrr.gz
 D:\FinTrack\obj\Debug\net10.0\compressed\rukxxavfca-{0}-87fc7y1x7t-87fc7y1x7t.gz
 D:\FinTrack\obj\Debug\net10.0\compressed\m1xn0gewpb-{0}-mlv21k5csn-mlv21k5csn.gz
-D:\FinTrack\obj\Debug\net10.0\compressed\tg1pq9gptf-{0}-8igyd0112d-8igyd0112d.gz
-D:\FinTrack\obj\Debug\net10.0\compressed\mkaxedqvz7-{0}-8igyd0112d-8igyd0112d.gz
 D:\FinTrack\obj\Debug\net10.0\staticwebassets.build.json
 D:\FinTrack\obj\Debug\net10.0\staticwebassets.build.json.cache
 D:\FinTrack\obj\Debug\net10.0\staticwebassets.development.json
@@ -131,5 +124,11 @@ D:\FinTrack\obj\Debug\net10.0\refint\FinTrack.dll
 D:\FinTrack\obj\Debug\net10.0\FinTrack.pdb
 D:\FinTrack\obj\Debug\net10.0\FinTrack.genruntimeconfig.cache
 D:\FinTrack\obj\Debug\net10.0\ref\FinTrack.dll
-D:\FinTrack\obj\Debug\net10.0\compressed\ci2165jmlv-{0}-spkw1vmcc1-spkw1vmcc1.gz
 D:\FinTrack\obj\Debug\net10.0\FinTrack.sourcelink.json
+D:\FinTrack\obj\Debug\net10.0\EmbeddedAttribute.cs
+D:\FinTrack\obj\Debug\net10.0\ValidatableTypeAttribute.cs
+D:\FinTrack\obj\Debug\net10.0\compressed\6lazv1pgd5-{0}-b9228eflpl-b9228eflpl.gz
+D:\FinTrack\obj\Debug\net10.0\compressed\zbsic4k76t-{0}-2tj1sjhksk-2tj1sjhksk.gz
+D:\FinTrack\obj\Debug\net10.0\compressed\r5qhz0l8vs-{0}-0g3h5qelbg-0g3h5qelbg.gz
+D:\FinTrack\obj\Debug\net10.0\compressed\ci2165jmlv-{0}-cc6pt9qxqi-cc6pt9qxqi.gz
+D:\FinTrack\obj\Debug\net10.0\compressed\t41grj99h4-{0}-ljsqnznrye-ljsqnznrye.gz

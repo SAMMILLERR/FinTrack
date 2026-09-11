@@ -1,0 +1,166 @@
+@page "/account/register"
+@rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
+
+@using FinTrack.Models
+@using FinTrack.Services.Interfaces
+
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Register</PageTitle>
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+
+                <h2 class="text-center mb-4">
+                    Create Account
+                </h2>
+
+                @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+                {
+                    <div class="alert alert-danger">
+                        @ErrorMessage
+                    </div>
+                }
+
+                <EditForm Model="@Input"
+                          OnValidSubmit="@HandleRegister"
+                          FormName="registerForm">
+
+                    <DataAnnotationsValidator />
+
+                    <ValidationSummary />
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            First Name
+                        </label>
+
+                        <InputText class="form-control"
+                                   @bind-Value="Input.FirstName" />
+
+                        <ValidationMessage For="@(() => Input.FirstName)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Last Name
+                        </label>
+
+                        <InputText class="form-control"
+                                   @bind-Value="Input.LastName" />
+
+                        <ValidationMessage For="@(() => Input.LastName)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Email
+                        </label>
+
+                        <InputText class="form-control"
+                                   type="email"
+                                   @bind-Value="Input.Email" />
+
+                        <ValidationMessage For="@(() => Input.Email)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Password
+                        </label>
+
+                        <InputText class="form-control"
+                                   type="password"
+                                   @bind-Value="Input.Password" />
+
+                        <ValidationMessage For="@(() => Input.Password)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Confirm Password
+                        </label>
+
+                        <InputText class="form-control"
+                                   type="password"
+                                   @bind-Value="Input.ConfirmPassword" />
+
+                        <ValidationMessage For="@(() => Input.ConfirmPassword)" />
+                    </div>
+
+                    <button type="submit"
+                            class="btn btn-primary w-100"
+                            disabled="@IsSubmitting">
+
+                        @if (IsSubmitting)
+                        {
+                            <span>Creating Account...</span>
+                        }
+                        else
+                        {
+                            <span>Register</span>
+                        }
+
+                    </button>
+
+                </EditForm>
+
+                <div class="text-center mt-3">
+
+                    Already have an account?
+
+                    <a href="/account/login">
+                        <strong>Login</strong>
+                    </a>
+
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@code {
+
+    private RegisterViewModel Input { get; set; } = new();
+
+    private string? ErrorMessage;
+
+    private bool IsSubmitting;
+
+    private async Task HandleRegister()
+    {
+        ErrorMessage = null;
+        IsSubmitting = true;
+
+        try
+        {
+            var result =
+                await AuthService.RegisterAsync(Input);
+
+            if (!result.Success)
+            {
+                ErrorMessage = result.ErrorMessage;
+                return;
+            }
+
+            Navigation.NavigateTo(
+                "/account/login?message=registered",
+                forceLoad: true);
+        }
+        catch (Exception)
+        {
+            ErrorMessage =
+                "Unable to create your account right now.";
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+}

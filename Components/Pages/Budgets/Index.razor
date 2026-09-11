@@ -1,0 +1,287 @@
+@page "/budgets"
+@rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
+
+@attribute [Authorize(Roles = "User")]
+
+@using System.Security.Claims
+@using FinTrack.Models
+@using FinTrack.Services.Interfaces
+
+@inject IBudgetService BudgetService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Budgets</PageTitle>
+
+<h2 class="mb-4">
+    Budget Management
+</h2>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <div>
+        <h5 class="text-muted">
+            Manage your monthly budgets
+        </h5>
+    </div>
+
+    <button type="button"
+            class="btn btn-primary"
+            @onclick="CreateBudget">
+
+        <i class="bi bi-plus-circle"></i>
+        Create Budget
+
+    </button>
+
+</div>
+
+@if (IsLoading)
+{
+    <div class="alert alert-info">
+        Loading budgets...
+    </div>
+}
+else if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger">
+        @ErrorMessage
+    </div>
+}
+else
+{
+    @if (!Budgets.Any())
+    {
+        <div class="alert alert-info mt-4">
+
+            <i class="bi bi-info-circle"></i>
+
+            No budgets have been created yet.
+
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+
+            <table class="table table-hover table-bordered align-middle shadow-sm">
+
+                <thead class="table-dark">
+
+                    <tr>
+                        <th>Category</th>
+                        <th>Month</th>
+                        <th>Budget</th>
+                        <th>Spent</th>
+                        <th>Remaining</th>
+                        <th style="width:220px">Progress</th>
+                        <th>Status</th>
+                        <th style="width:150px">Actions</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    @foreach (var item in Budgets)
+                    {
+                        var percentage =
+                            item.LimitAmount == 0
+                                ? 0
+                                : (item.SpentAmount /
+                                   item.LimitAmount) * 100;
+
+                        var progressWidth =
+                            Math.Min(percentage, 100);
+
+                        <tr>
+
+                            <td>
+                                <strong>
+                                    @item.CategoryName
+                                </strong>
+                            </td>
+
+                            <td>
+                                @GetMonthName(
+                                    item.BudgetYear,
+                                    item.BudgetMonth)
+                            </td>
+
+                            <td class="fw-bold">
+                                ₹ @item.LimitAmount.ToString("N2")
+                            </td>
+
+                            <td>
+                                ₹ @item.SpentAmount.ToString("N2")
+                            </td>
+
+                            <td>
+
+                                @if (item.RemainingAmount >= 0)
+                                {
+                                    <span class="text-success fw-bold">
+                                        ₹ @item.RemainingAmount.ToString("N2")
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-danger fw-bold">
+                                        Over by ₹
+                                        @Math.Abs(item.RemainingAmount).ToString("N2")
+                                    </span>
+                                }
+
+                            </td>
+
+                            <td>
+
+                                <div class="progress"
+                                     style="height:24px;">
+
+                                    <div class="progress-bar
+                                        @(percentage >= 100
+                                            ? "bg-danger"
+                                            : percentage >= 80
+                                                ? "bg-warning text-dark"
+                                                : "bg-success")"
+                                         role="progressbar"
+                                         style="width:@progressWidth%">
+
+                                        @percentage.ToString("0")%
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+                            <td>
+
+                                @if (percentage < 80)
+                                {
+                                    <span class="badge bg-success">
+                                        Healthy
+                                    </span>
+                                }
+                                else if (percentage < 100)
+                                {
+                                    <span class="badge bg-warning text-dark">
+                                        Near Limit
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">
+                                        Over Budget
+                                    </span>
+                                }
+
+                            </td>
+
+                            <td>
+
+                                <button type="button"
+                                        class="btn btn-warning btn-sm me-1"
+                                        @onclick="() => EditBudget(item.BudgetId)">
+
+                                    <i class="bi bi-pencil-square"></i>
+
+                                </button>
+
+                                <button type="button"
+                                        class="btn btn-danger btn-sm"
+                                        @onclick="() => DeleteBudget(item.BudgetId)">
+
+                                    <i class="bi bi-trash"></i>
+
+                                </button>
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+    }
+}
+
+@code
+{
+    private IEnumerable<Budget> Budgets =
+        new List<Budget>();
+
+    private bool IsLoading = true;
+
+    private string? ErrorMessage;
+
+    private int UserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authenticationState =
+                await AuthenticationStateProvider
+                    .GetAuthenticationStateAsync();
+
+            var claim =
+                authenticationState.User.FindFirst(
+                    ClaimTypes.NameIdentifier);
+
+            if (claim == null ||
+                !int.TryParse(claim.Value, out UserId))
+            {
+                ErrorMessage =
+                    "Unable to identify the current user.";
+
+                return;
+            }
+
+            await LoadBudgets();
+        }
+        catch (Exception)
+        {
+            ErrorMessage =
+                "Unable to load budgets right now.";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task LoadBudgets()
+    {
+        Budgets =
+            await BudgetService
+                .GetBudgetsAsync(UserId);
+    }
+
+    private static string GetMonthName(
+        int year,
+        int month)
+    {
+        return new DateTime(year, month, 1)
+            .ToString("MMMM yyyy");
+    }
+
+    private void CreateBudget()
+    {
+        Navigation.NavigateTo("/budgets/create");
+    }
+
+    private void EditBudget(int id)
+    {
+        Navigation.NavigateTo($"/budgets/edit/{id}");
+    }
+
+    private void DeleteBudget(int id)
+    {
+        Navigation.NavigateTo($"/budgets/delete/{id}");
+    }
+}

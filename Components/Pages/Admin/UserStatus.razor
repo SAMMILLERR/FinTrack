@@ -1,0 +1,30 @@
+@page "/admin/users/status/{Id:int}/{IsActive:bool}"
+@attribute [Authorize(Roles = "Admin")]
+
+@using FinTrack.Services.Interfaces
+
+@inject IUserService UserService
+@inject NavigationManager Navigation
+
+<PageTitle>Change User Status</PageTitle>
+
+<div class="container mt-4">
+    <div class="alert alert-info">
+        Updating user status...
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    [Parameter]
+    public bool IsActive { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await UserService.ToggleStatusAsync(Id, IsActive);
+
+        Navigation.NavigateTo("/admin/users", forceLoad: true);
+    }
+}

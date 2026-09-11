@@ -1,0 +1,194 @@
+@page "/transactions/delete/{Id:int}"
+@rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
+
+@attribute [Authorize]
+
+@using System.Security.Claims
+@using FinTrack.Models
+@using FinTrack.Services.Interfaces
+
+@inject ITransactionService TransactionService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Delete Transaction</PageTitle>
+
+@if (IsLoading)
+{
+    <div class="alert alert-info">
+        Loading transaction...
+    </div>
+}
+else if (NotFound)
+{
+    <div class="alert alert-danger">
+        Transaction not found.
+    </div>
+
+    <button type="button"
+            class="btn btn-secondary"
+            @onclick="Cancel">
+        Back
+    </button>
+}
+else
+{
+    <h2 class="text-danger">
+        Delete Transaction
+    </h2>
+
+    <div class="alert alert-danger">
+        <h5>
+            Are you sure you want to delete this transaction?
+        </h5>
+    </div>
+
+    <table class="table table-bordered">
+
+        <tr>
+            <th>Date</th>
+            <td>
+                @Transaction.TransactionDate.ToShortDateString()
+            </td>
+        </tr>
+
+        <tr>
+            <th>Category</th>
+            <td>
+                @Transaction.CategoryName
+            </td>
+        </tr>
+
+        <tr>
+            <th>Amount</th>
+            <td>
+                ₹ @Transaction.Amount
+            </td>
+        </tr>
+
+        <tr>
+            <th>Description</th>
+            <td>
+                @Transaction.Description
+            </td>
+        </tr>
+
+    </table>
+
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="alert alert-danger">
+            @ErrorMessage
+        </div>
+    }
+
+    <button type="button"
+            class="btn btn-danger"
+            disabled="@IsDeleting"
+            @onclick="DeleteTransaction">
+
+        @(IsDeleting ? "Deleting..." : "Delete")
+
+    </button>
+
+    <button type="button"
+            class="btn btn-secondary ms-2"
+            disabled="@IsDeleting"
+            @onclick="Cancel">
+
+        Cancel
+
+    </button>
+}
+
+@code
+{
+    [Parameter]
+    public int Id { get; set; }
+
+    private Transaction Transaction { get; set; } = new();
+
+    private int UserId;
+
+    private bool IsLoading = true;
+
+    private bool IsDeleting;
+
+    private bool NotFound;
+
+    private string? ErrorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authenticationState =
+                await AuthenticationStateProvider
+                    .GetAuthenticationStateAsync();
+
+            var claim =
+                authenticationState.User.FindFirst(
+                    ClaimTypes.NameIdentifier);
+
+            if (claim == null ||
+                !int.TryParse(claim.Value, out UserId))
+            {
+                ErrorMessage =
+                    "Unable to identify the current user.";
+
+                return;
+            }
+
+            var transaction =
+                await TransactionService
+                    .GetTransactionAsync(Id, UserId);
+
+            if (transaction == null)
+            {
+                NotFound = true;
+                return;
+            }
+
+            Transaction = transaction;
+        }
+        catch (Exception)
+        {
+            ErrorMessage =
+                "Unable to load the transaction right now.";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task DeleteTransaction()
+    {
+        try
+        {
+            IsDeleting = true;
+            ErrorMessage = null;
+
+            await TransactionService
+                .DeleteTransactionAsync(
+                    Transaction.TransactionId,
+                    UserId);
+
+            Navigation.NavigateTo("/transactions");
+        }
+        catch (Exception)
+        {
+            ErrorMessage =
+                "Unable to delete the transaction right now.";
+        }
+        finally
+        {
+            IsDeleting = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/transactions");
+    }
+}

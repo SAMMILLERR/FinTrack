@@ -19,37 +19,43 @@ public class CategoryRepository : ICategoryRepository
             _configuration.GetConnectionString("DefaultConnection"));
     }
 
-   public async Task<IEnumerable<Category>> GetAllAsync()
-{
-    using var connection = GetConnection();
+    public async Task<IEnumerable<Category>> GetAllAsync()
+    {
+        using var connection = GetConnection();
 
-    string sql = @"
-        SELECT
+        string sql = @"
+            SELECT
+                c.CategoryId,
+                c.CategoryName,
+                c.CategoryTypeId,
+                ct.TypeName AS CategoryTypeName,
+                c.IsActive
+            FROM Categories c
+            INNER JOIN CategoryTypes ct
+                ON c.CategoryTypeId = ct.CategoryTypeId
+            ORDER BY c.CategoryId";
 
-            c.CategoryId,
+        return await connection.QueryAsync<Category>(sql);
+    }
 
-            c.CategoryName,
-
-            ct.TypeName AS CategoryTypeName,
-
-            c.IsActive
-
-        FROM Categories c
-
-        INNER JOIN CategoryTypes ct
-
-        ON c.CategoryTypeId = ct.CategoryTypeId
-
-        ORDER BY c.CategoryId";
-
-    return await connection.QueryAsync<Category>(sql);
-}
     public async Task<Category?> GetByIdAsync(int id)
     {
         using var connection = GetConnection();
 
+        string sql = @"
+            SELECT
+                c.CategoryId,
+                c.CategoryName,
+                c.CategoryTypeId,
+                ct.TypeName AS CategoryTypeName,
+                c.IsActive
+            FROM Categories c
+            INNER JOIN CategoryTypes ct
+                ON c.CategoryTypeId = ct.CategoryTypeId
+            WHERE c.CategoryId = @id";
+
         return await connection.QueryFirstOrDefaultAsync<Category>(
-            "SELECT * FROM Categories WHERE CategoryId=@id",
+            sql,
             new { id });
     }
 
@@ -57,28 +63,36 @@ public class CategoryRepository : ICategoryRepository
     {
         using var connection = GetConnection();
 
-        await connection.ExecuteAsync(
-        @"INSERT INTO Categories
-        (CategoryName,CategoryTypeId,IsActive)
+        string sql = @"
+            INSERT INTO Categories
+            (
+                CategoryName,
+                CategoryTypeId,
+                IsActive
+            )
+            VALUES
+            (
+                @CategoryName,
+                @CategoryTypeId,
+                @IsActive
+            )";
 
-        VALUES
-        (@CategoryName,@CategoryTypeId,@IsActive)", category);
+        await connection.ExecuteAsync(sql, category);
     }
 
     public async Task UpdateAsync(Category category)
     {
         using var connection = GetConnection();
 
-        await connection.ExecuteAsync(
-        @"UPDATE Categories
+        string sql = @"
+            UPDATE Categories
+            SET
+                CategoryName = @CategoryName,
+                CategoryTypeId = @CategoryTypeId,
+                IsActive = @IsActive
+            WHERE CategoryId = @CategoryId";
 
-          SET CategoryName=@CategoryName,
-
-              CategoryTypeId=@CategoryTypeId,
-
-              IsActive=@IsActive
-
-          WHERE CategoryId=@CategoryId", category);
+        await connection.ExecuteAsync(sql, category);
     }
 
     public async Task DeleteAsync(int id)
@@ -86,34 +100,58 @@ public class CategoryRepository : ICategoryRepository
         using var connection = GetConnection();
 
         await connection.ExecuteAsync(
-            "DELETE FROM Categories WHERE CategoryId=@id",
+            "DELETE FROM Categories WHERE CategoryId = @id",
             new { id });
     }
+
+    public async Task ToggleStatusAsync(int id)
+    {
+        using var connection = GetConnection();
+
+        string sql = @"
+            UPDATE Categories
+            SET IsActive =
+                CASE
+                    WHEN IsActive = 1 THEN 0
+                    ELSE 1
+                END
+            WHERE CategoryId = @id";
+
+        await connection.ExecuteAsync(
+            sql,
+            new { id });
+    }
+
     public async Task<IEnumerable<CategoryType>> GetCategoryTypesAsync()
-{
-    using var connection = GetConnection();
+    {
+        using var connection = GetConnection();
 
-    return await connection.QueryAsync<CategoryType>(
-        @"SELECT *
-          FROM CategoryTypes
-          ORDER BY TypeName");
-}
-public async Task<IEnumerable<Category>> GetByTypeAsync(string type)
-{
-    using var connection = GetConnection();
+        return await connection.QueryAsync<CategoryType>(
+            @"SELECT *
+              FROM CategoryTypes
+              ORDER BY TypeName");
+    }
 
-    string sql = @"
-        SELECT
-            c.CategoryId,
-            c.CategoryName
-        FROM Categories c
-        INNER JOIN CategoryTypes ct
-            ON c.CategoryTypeId = ct.CategoryTypeId
-        WHERE ct.TypeName = @type
-        ORDER BY c.CategoryName";
+    public async Task<IEnumerable<Category>> GetByTypeAsync(string type)
+    {
+        using var connection = GetConnection();
 
-    return await connection.QueryAsync<Category>(
-        sql,
-        new { type });
-}
+        string sql = @"
+            SELECT
+                c.CategoryId,
+                c.CategoryName,
+                c.CategoryTypeId,
+                ct.TypeName AS CategoryTypeName,
+                c.IsActive
+            FROM Categories c
+            INNER JOIN CategoryTypes ct
+                ON c.CategoryTypeId = ct.CategoryTypeId
+            WHERE ct.TypeName = @type
+              AND c.IsActive = 1
+            ORDER BY c.CategoryName";
+
+        return await connection.QueryAsync<Category>(
+            sql,
+            new { type });
+    }
 }

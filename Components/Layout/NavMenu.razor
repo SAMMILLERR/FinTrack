@@ -1,0 +1,224 @@
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject IJSRuntime JS
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+
+    <div class="container">
+
+        <a class="navbar-brand fw-bold"
+           href="@(IsAdmin ? "/transactions" : "/dashboard")">
+
+            <i class="bi bi-wallet2"></i>
+            FinTrack
+
+        </a>
+
+        <button class="navbar-toggler"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navbarNav">
+
+            <span class="navbar-toggler-icon"></span>
+
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+
+            <ul class="navbar-nav me-auto">
+
+                @if (IsAuthenticated)
+                {
+                    @if (IsAdmin)
+                    {
+                        <!-- ADMIN NAVIGATION -->
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="/transactions">
+                                <i class="bi bi-arrow-left-right"></i>
+                                Transactions
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/users">
+                                <i class="bi bi-people"></i>
+                                Users
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/categories">
+                                <i class="bi bi-tags"></i>
+                                Categories
+                            </a>
+                        </li>
+                    }
+                    else
+                    {
+                        <!-- USER NAVIGATION -->
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="/dashboard">
+                                <i class="bi bi-speedometer2"></i>
+                                Dashboard
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="/transactions">
+                                <i class="bi bi-arrow-left-right"></i>
+                                Transactions
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="/budgets">
+                                <i class="bi bi-pie-chart"></i>
+                                Budgets
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="/reports">
+                                <i class="bi bi-bar-chart"></i>
+                                Reports
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="/recurring-payments">
+                                <i class="bi bi-arrow-repeat"></i>
+                                Recurring Payments
+                            </a>
+                        </li>
+                    }
+                }
+
+            </ul>
+
+            @if (IsAuthenticated)
+            {
+                <ul class="navbar-nav align-items-center">
+
+                    <!-- NAME + ROLE -->
+
+                    <li class="nav-item me-3">
+
+                        <div class="text-white text-end">
+
+                            <div class="fw-semibold">
+                                <i class="bi bi-person-circle"></i>
+                                @UserName
+                            </div>
+
+                            <small class="text-light opacity-75">
+                                @UserRole
+                            </small>
+
+                        </div>
+
+                    </li>
+
+                    <!-- THEME -->
+
+                    <li class="nav-item me-2">
+
+                        <button type="button"
+                                class="btn btn-outline-light btn-sm"
+                                @onclick="ToggleTheme">
+
+                            <i class="bi bi-moon-stars"></i>
+                            Theme
+
+                        </button>
+
+                    </li>
+
+                    <!-- LOGOUT -->
+
+                    <li class="nav-item">
+
+                        <button type="button"
+                                class="btn btn-link nav-link text-warning"
+                                @onclick="Logout">
+
+                            <i class="bi bi-box-arrow-right"></i>
+                            Logout
+
+                        </button>
+
+                    </li>
+
+                </ul>
+            }
+            else
+            {
+                <ul class="navbar-nav">
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="/account/login">
+                            Login
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="/account/register">
+                            Register
+                        </a>
+                    </li>
+
+                </ul>
+            }
+
+        </div>
+
+    </div>
+
+</nav>
+
+@code {
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    private bool IsAuthenticated;
+    private bool IsAdmin;
+
+    private string UserName = "";
+    private string UserRole = "";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AuthenticationStateTask == null)
+            return;
+
+        var state = await AuthenticationStateTask;
+
+        var user = state.User;
+
+        IsAuthenticated =
+            user.Identity?.IsAuthenticated == true;
+
+        IsAdmin =
+            user.IsInRole("Admin");
+
+        UserName =
+            user.Identity?.Name ?? "User";
+
+        UserRole =
+            IsAdmin ? "Administrator" : "User";
+    }
+
+    private async Task ToggleTheme()
+    {
+        await JS.InvokeVoidAsync(
+            "FinTrack.toggleTheme");
+    }
+
+    private async Task Logout()
+    {
+        await JS.InvokeVoidAsync(
+            "FinTrack.auth.logout");
+    }
+}

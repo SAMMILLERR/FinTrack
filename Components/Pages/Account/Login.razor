@@ -1,0 +1,134 @@
+@page "/account/login"
+@rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
+
+@using FinTrack.Models
+@using FinTrack.Services.Interfaces
+
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>Login</PageTitle>
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+
+                <h2 class="text-center mb-4">
+                    Login
+                </h2>
+
+                @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+                {
+                    <div class="alert alert-danger">
+                        @ErrorMessage
+                    </div>
+                }
+
+                <EditForm Model="@Input"
+                          OnValidSubmit="@SubmitLogin"
+                          FormName="loginForm">
+
+                    <DataAnnotationsValidator />
+
+                    <ValidationSummary />
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Email
+                        </label>
+
+                        <InputText class="form-control"
+                                   type="email"
+                                   @bind-Value="Input.Email" />
+
+                        <ValidationMessage For="@(() => Input.Email)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Password
+                        </label>
+
+                        <InputText class="form-control"
+                                   type="password"
+                                   @bind-Value="Input.Password" />
+
+                        <ValidationMessage For="@(() => Input.Password)" />
+                    </div>
+
+                    <button type="submit"
+                            class="btn btn-primary w-100"
+                            disabled="@IsSubmitting">
+
+                        @if (IsSubmitting)
+                        {
+                            <span>Logging in...</span>
+                        }
+                        else
+                        {
+                            <span>Login</span>
+                        }
+
+                    </button>
+
+                </EditForm>
+
+                <div class="text-center mt-3">
+
+                    Don't have an account?
+
+                    <a href="/account/register">
+                        <strong>Register</strong>
+                    </a>
+
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@code {
+
+    private LoginModel Input { get; set; } = new();
+
+    private string? ErrorMessage;
+
+    private bool IsSubmitting;
+
+    private async Task SubmitLogin()
+    {
+        ErrorMessage = null;
+        IsSubmitting = true;
+
+        try
+        {
+            var result =
+                await AuthService.LoginAsync(Input);
+
+            if (!result.Success)
+            {
+                ErrorMessage = result.ErrorMessage;
+                return;
+            }
+
+            await JS.InvokeVoidAsync(
+                "FinTrack.auth.login",
+                Input.Email,
+                Input.Password);
+        }
+        catch (Exception)
+        {
+            ErrorMessage =
+                "Unable to login right now.";
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+}

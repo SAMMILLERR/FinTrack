@@ -1,0 +1,137 @@
+@page "/admin/users"
+@attribute [Authorize(Roles = "Admin")]
+
+@using System.Security.Claims
+@using FinTrack.Models
+@using FinTrack.Services.Interfaces
+
+@inject IUserService UserService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>User Management</PageTitle>
+
+<h2 class="mb-4">User Management</h2>
+
+@if (IsLoading)
+{
+    <div class="alert alert-info">Loading users...</div>
+}
+else if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger">@ErrorMessage</div>
+}
+else
+{
+    <table class="table table-bordered table-striped">
+
+        <thead class="table-dark">
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var user in UserList)
+            {
+                <tr>
+                    <td>
+                        @user.FirstName @user.LastName
+                    </td>
+
+                    <td>
+                        @user.Email
+                    </td>
+
+                    <td>
+                        @if (user.RoleName == "Admin")
+                        {
+                            <span class="badge bg-danger">Admin</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-primary">User</span>
+                        }
+                    </td>
+
+                    <td>
+                        @if (user.IsActive)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactive</span>
+                        }
+                    </td>
+
+                    <td>
+                        @user.CreatedOn.ToShortDateString()
+                    </td>
+
+                    <td>
+                        @if (CurrentUserId == user.UserId)
+                        {
+                            <span class="text-muted">Current User</span>
+                        }
+                        else
+                        {
+                            <a href="@($"/admin/users/role/{user.UserId}/{user.RoleId}")"
+                               class="btn btn-warning btn-sm me-1">
+                                @(user.RoleId == 1 ? "Make User" : "Make Admin")
+                            </a>
+
+                            <a href="@($"/admin/users/status/{user.UserId}/{user.IsActive}")"
+                               class="btn btn-info btn-sm">
+                                @(user.IsActive ? "Deactivate" : "Activate")
+                            </a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+
+    </table>
+}
+
+@code {
+    private IEnumerable<User> UserList = new List<User>();
+
+    private int? CurrentUserId;
+
+    private bool IsLoading = true;
+
+    private string? ErrorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var state =
+                await AuthenticationStateProvider.GetAuthenticationStateAsync();
+
+            var claim =
+                state.User.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (claim != null &&
+                int.TryParse(claim.Value, out var userId))
+            {
+                CurrentUserId = userId;
+            }
+
+            UserList = await UserService.GetUsersAsync();
+        }
+        catch
+        {
+            ErrorMessage = "Unable to load users right now.";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+}

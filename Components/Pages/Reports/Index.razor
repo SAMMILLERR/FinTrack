@@ -1,0 +1,384 @@
+@page "/reports"
+@rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
+
+@attribute [Authorize(Roles = "User")]
+
+@using System.Security.Claims
+@using FinTrack.Models
+@using FinTrack.Services.Interfaces
+
+@inject IReportService ReportService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JS
+
+<PageTitle>Reports</PageTitle>
+
+<h2 class="mb-4">
+    Expense Report
+</h2>
+
+@if (IsLoading)
+{
+    <div class="alert alert-info">
+        Loading expense report...
+    </div>
+}
+else if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger">
+        @ErrorMessage
+    </div>
+}
+else
+{
+    <div class="mb-4">
+        <button type="button"
+                class="btn btn-success"
+                @onclick="ExportCsv"
+                disabled="@IsExporting">
+
+            <i class="bi bi-file-earmark-arrow-down"></i>
+
+            @(IsExporting ? "Exporting..." : "Export CSV")
+
+        </button>
+    </div>
+
+    @if (!Reports.Any())
+    {
+        <div class="alert alert-info">
+            No expenses found for the current month.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive mb-4">
+
+            <table class="table table-bordered table-striped">
+
+                <thead class="table-dark">
+                    <tr>
+                        <th>Category</th>
+                        <th>Total Amount</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var item in Reports)
+                    {
+                        <tr>
+                            <td>@item.CategoryName</td>
+
+                            <td>
+                                ₹ @item.TotalAmount.ToString("N2")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+
+            </table>
+
+        </div>
+
+        <div class="row g-4">
+
+            <!-- PIE CHART -->
+
+            <div class="col-md-6">
+
+                <div class="card shadow-sm h-100">
+
+                    <div class="card-body">
+
+                        <h5 class="card-title mb-4">
+                            Expense Distribution
+                        </h5>
+
+                        @{
+                            var total =
+                                Reports.Sum(x => x.TotalAmount);
+
+                            var cumulativePercentage = 0.0;
+
+                            var pieColors = new[]
+                            {
+                                "#0d6efd",
+                                "#198754",
+                                "#dc3545",
+                                "#ffc107",
+                                "#6f42c1",
+                                "#20c997",
+                                "#fd7e14",
+                                "#d63384"
+                            };
+
+                            var gradientParts =
+                                new List<string>();
+
+                            var colorIndex = 0;
+
+                            foreach (var item in Reports)
+                            {
+                                var percentage =
+                                    total == 0
+                                        ? 0
+                                        : (double)(
+                                            item.TotalAmount / total) * 100;
+
+                                var start =
+                                    cumulativePercentage;
+
+                                var end =
+                                    cumulativePercentage +
+                                    percentage;
+
+                                var color =
+                                    pieColors[
+                                        colorIndex %
+                                        pieColors.Length];
+
+                                gradientParts.Add(
+                                    $"{color} {start}% {end}%");
+
+                                cumulativePercentage = end;
+
+                                colorIndex++;
+                            }
+
+                            var pieGradient =
+                                $"conic-gradient({string.Join(", ", gradientParts)})";
+                        }
+
+                        <div class="d-flex justify-content-center">
+
+                            <div class="expense-pie"
+                                 style="background:@pieGradient;">
+                            </div>
+
+                        </div>
+
+                        <div class="mt-4">
+
+                            @{
+                                var legendIndex = 0;
+                            }
+
+                            @foreach (var item in Reports)
+                            {
+                                var percentage =
+                                    total == 0
+                                        ? 0
+                                        : (double)(
+                                            item.TotalAmount / total) * 100;
+
+                                var color =
+                                    pieColors[
+                                        legendIndex %
+                                        pieColors.Length];
+
+                                <div class="d-flex align-items-center mb-2">
+
+                                    <span class="chart-legend-color"
+                                          style="background:@color;">
+                                    </span>
+
+                                    <span class="ms-2">
+                                        @item.CategoryName
+                                    </span>
+
+                                    <span class="ms-auto fw-bold">
+                                        @percentage.ToString("0.0")%
+                                    </span>
+
+                                </div>
+
+                                legendIndex++;
+                            }
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- BAR CHART -->
+
+            <div class="col-md-6">
+
+                <div class="card shadow-sm h-100">
+
+                    <div class="card-body">
+
+                        <h5 class="card-title mb-4">
+                            Expenses by Category
+                        </h5>
+
+                        @{
+                            var maxAmount =
+                                Reports.Any()
+                                    ? Reports.Max(x => x.TotalAmount)
+                                    : 0;
+                        }
+
+                        @foreach (var item in Reports)
+                        {
+                            var width =
+                                maxAmount == 0
+                                    ? 0
+                                    : (double)(
+                                        item.TotalAmount / maxAmount) * 100;
+
+                            <div class="mb-4">
+
+                                <div class="d-flex justify-content-between mb-1">
+
+                                    <span class="fw-semibold">
+                                        @item.CategoryName
+                                    </span>
+
+                                    <span>
+                                        ₹ @item.TotalAmount.ToString("N2")
+                                    </span>
+
+                                </div>
+
+                                <div class="progress"
+                                     style="height:30px;">
+
+                                    <div class="progress-bar bg-primary"
+                                         role="progressbar"
+                                         style="width:@width%;">
+
+                                        @item.TotalAmount.ToString("N0")
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        }
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    }
+}
+
+<style>
+
+    .expense-pie {
+        width: 280px;
+        height: 280px;
+        border-radius: 50%;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .chart-legend-color {
+        width: 16px;
+        height: 16px;
+        display: inline-block;
+        border-radius: 3px;
+        flex-shrink: 0;
+    }
+
+</style>
+
+@code
+{
+    private IEnumerable<CategoryReport> Reports =
+        new List<CategoryReport>();
+
+    private bool IsLoading = true;
+
+    private bool IsExporting;
+
+    private string? ErrorMessage;
+
+    private int UserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authenticationState =
+                await AuthenticationStateProvider
+                    .GetAuthenticationStateAsync();
+
+            var claim =
+                authenticationState.User.FindFirst(
+                    ClaimTypes.NameIdentifier);
+
+            if (claim == null ||
+                !int.TryParse(
+                    claim.Value,
+                    out UserId))
+            {
+                ErrorMessage =
+                    "Unable to identify the current user.";
+
+                return;
+            }
+
+            Reports =
+                await ReportService
+                    .GetCurrentMonthReportAsync(UserId);
+        }
+        catch (Exception)
+        {
+            ErrorMessage =
+                "Unable to load the expense report right now.";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task ExportCsv()
+    {
+        try
+        {
+            IsExporting = true;
+            ErrorMessage = null;
+
+            var csv =
+                await ReportService
+                    .ExportCurrentMonthReportAsync(UserId);
+
+            if (csv == null || csv.Length == 0)
+            {
+                ErrorMessage =
+                    "There is no report data to export.";
+
+                return;
+            }
+
+            var base64 =
+                Convert.ToBase64String(csv);
+
+            var fileName =
+                $"ExpenseReport_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+
+            await JS.InvokeVoidAsync(
+                "FinTrack.downloadFile",
+                fileName,
+                "text/csv;charset=utf-8",
+                base64);
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage =
+                $"Unable to export the report: {ex.Message}";
+        }
+        finally
+        {
+            IsExporting = false;
+        }
+    }
+}

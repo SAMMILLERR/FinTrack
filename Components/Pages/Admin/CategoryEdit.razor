@@ -1,0 +1,121 @@
+@page "/admin/categories/edit/{Id:int}"
+@attribute [Authorize(Roles = "Admin")]
+
+@using FinTrack.Models
+@using FinTrack.Services.Interfaces
+
+@inject ICategoryService CategoryService
+@inject NavigationManager Navigation
+
+<PageTitle>Edit Category</PageTitle>
+
+<h2>Edit Category</h2>
+
+@if (IsLoading)
+{
+    <div class="alert alert-info">
+        Loading category...
+    </div>
+}
+else if (Category == null)
+{
+    <div class="alert alert-danger">
+        Category not found.
+    </div>
+}
+else
+{
+    <EditForm Model="@Category" OnValidSubmit="@UpdateCategory">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <input type="hidden" @bind="Category.CategoryId" />
+
+        <div class="mb-3">
+            <label class="form-label">Category Name</label>
+
+            <InputText @bind-Value="Category.CategoryName"
+                       class="form-control" />
+
+            <ValidationMessage For="@(() => Category.CategoryName)" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Category Type</label>
+
+            <InputSelect @bind-Value="Category.CategoryTypeId"
+                         class="form-select">
+
+                @foreach (var type in CategoryTypes)
+                {
+                    <option value="@type.CategoryTypeId">
+                        @type.TypeName
+                    </option>
+                }
+
+            </InputSelect>
+        </div>
+
+        <div class="form-check">
+            <InputCheckbox @bind-Value="Category.IsActive"
+                           class="form-check-input" />
+
+            <label class="form-check-label">
+                Active
+            </label>
+        </div>
+
+        <br />
+
+        <button type="submit"
+                class="btn btn-success me-2">
+            Update
+        </button>
+
+        <button type="button"
+                class="btn btn-secondary"
+                @onclick="Cancel">
+            Cancel
+        </button>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Category? Category;
+
+    private IEnumerable<CategoryType> CategoryTypes =
+        new List<CategoryType>();
+
+    private bool IsLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Category = await CategoryService.GetCategoryAsync(Id);
+
+        if (Category != null)
+        {
+            CategoryTypes =
+                await CategoryService.GetCategoryTypesAsync();
+        }
+
+        IsLoading = false;
+    }
+
+    private async Task UpdateCategory()
+    {
+        if (Category == null)
+            return;
+
+        await CategoryService.UpdateCategoryAsync(Category);
+
+        Navigation.NavigateTo("/admin/categories");
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/admin/categories");
+    }
+}

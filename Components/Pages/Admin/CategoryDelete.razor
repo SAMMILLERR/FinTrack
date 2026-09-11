@@ -1,0 +1,92 @@
+@page "/admin/categories/delete/{Id:int}"
+@attribute [Authorize(Roles = "Admin")]
+
+@using FinTrack.Models
+@using FinTrack.Services.Interfaces
+
+@inject ICategoryService CategoryService
+@inject NavigationManager Navigation
+
+<PageTitle>Delete Category</PageTitle>
+
+<h2 class="text-danger">
+    Delete Category
+</h2>
+
+@if (IsLoading)
+{
+    <div class="alert alert-info">
+        Loading category...
+    </div>
+}
+else if (Category == null)
+{
+    <div class="alert alert-danger">
+        Category not found.
+    </div>
+}
+else
+{
+    <div class="alert alert-danger">
+        Are you sure you want to delete this category?
+    </div>
+
+    <dl class="row">
+
+        <dt class="col-sm-3">
+            Name
+        </dt>
+
+        <dd class="col-sm-9">
+            @Category.CategoryName
+        </dd>
+
+        <dt class="col-sm-3">
+            Type
+        </dt>
+
+        <dd class="col-sm-9">
+            @Category.CategoryTypeName
+        </dd>
+
+    </dl>
+
+    <button class="btn btn-danger me-2"
+            @onclick="DeleteCategory">
+        Delete
+    </button>
+
+    <button class="btn btn-secondary"
+            @onclick="Cancel">
+        Cancel
+    </button>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Category? Category;
+
+    private bool IsLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Category =
+            await CategoryService.GetCategoryAsync(Id);
+
+        IsLoading = false;
+    }
+
+    private async Task DeleteCategory()
+    {
+        await CategoryService.DeleteCategoryAsync(Id);
+
+        Navigation.NavigateTo("/admin/categories");
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/admin/categories");
+    }
+}

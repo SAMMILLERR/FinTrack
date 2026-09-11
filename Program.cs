@@ -1,84 +1,221 @@
+using FinTrack.Components;
 using FinTrack.Data;
 using FinTrack.Repositories;
+using FinTrack.Services.Interfaces;
+using FinTrack.Services.Implementations;
+using FinTrack.Services.Background;
+
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.AspNetCore.RateLimiting;
+
+using System.Security.Claims;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddRazorPages();
-builder.Services.AddControllersWithViews();
+
+// ============================================================
+// BLAZOR
+// ============================================================
+
+builder.Services
+    .AddRazorComponents()
+    .AddInteractiveServerComponents();
+
+builder.Services.AddCascadingAuthenticationState();
 
 builder.Services.AddMemoryCache();
 
-builder.Services.AddScoped<IDbConnectionFactory, SqlConnectionFactory>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
-builder.Services.AddScoped<IBudgetRepository, BudgetRepository>();
-builder.Services.AddScoped<IReportRepository, ReportRepository>();
 
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+// ============================================================
+// DATABASE
+// ============================================================
+
+builder.Services.AddScoped<
+    IDbConnectionFactory,
+    SqlConnectionFactory>();
+
+
+// ============================================================
+// REPOSITORIES
+// ============================================================
+
+builder.Services.AddScoped<
+    IUserRepository,
+    UserRepository>();
+
+builder.Services.AddScoped<
+    ICategoryRepository,
+    CategoryRepository>();
+
+builder.Services.AddScoped<
+    ITransactionRepository,
+    TransactionRepository>();
+
+builder.Services.AddScoped<
+    IBudgetRepository,
+    BudgetRepository>();
+
+builder.Services.AddScoped<
+    IReportRepository,
+    ReportRepository>();
+
+// Recurring Payments
+builder.Services.AddScoped<
+    IRecurringPaymentRepository,
+    RecurringPaymentRepository>();
+
+
+// ============================================================
+// SERVICES
+// ============================================================
+
+builder.Services.AddScoped<
+    IDashboardService,
+    DashboardService>();
+
+builder.Services.AddScoped<
+    ITransactionService,
+    TransactionService>();
+
+builder.Services.AddScoped<
+    IBudgetService,
+    BudgetService>();
+
+builder.Services.AddScoped<
+    IReportService,
+    ReportService>();
+
+builder.Services.AddScoped<
+    IUserService,
+    UserService>();
+
+builder.Services.AddScoped<
+    ICategoryService,
+    CategoryService>();
+
+builder.Services.AddScoped<
+    IAuthService,
+    AuthService>();
+
+// Recurring Payments
+builder.Services.AddScoped<
+    IRecurringPaymentService,
+    RecurringPaymentService>();
+
+
+// ============================================================
+// BACKGROUND SERVICES
+// ============================================================
+
+builder.Services.AddHostedService<
+    RecurringPaymentWorker>();
+
+
+// ============================================================
+// AUTHENTICATION
+// ============================================================
+
+builder.Services
+    .AddAuthentication(
+        CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/Account/Login";
-        options.AccessDeniedPath = "/Account/AccessDenied";
-        options.LogoutPath = "/Account/Logout";
+        options.LoginPath = "/account/login";
+
+        options.AccessDeniedPath =
+            "/access-denied";
+
+        options.LogoutPath =
+            "/api/auth/logout";
     });
 
 builder.Services.AddAuthorization();
 
+
+// ============================================================
+// RATE LIMITING
+// ============================================================
+
 builder.Services.AddRateLimiter(options =>
 {
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.RejectionStatusCode =
+        StatusCodes.Status429TooManyRequests;
 
-  options.OnRejected = async (context, token) =>
-{
-    Console.WriteLine("========== RATE LIMIT HIT ==========");
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode =
+            StatusCodes.Status429TooManyRequests;
 
-    context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-    context.HttpContext.Response.ContentType = "text/plain";
+        context.HttpContext.Response.ContentType =
+            "text/plain";
 
-    await context.HttpContext.Response.WriteAsync(
-        "Too many login attempts. Wait one minute.",
-        token);
-};
+        await context.HttpContext.Response.WriteAsync(
+            "Too many login attempts. Please wait one minute.",
+            token);
+    };
 
     options.GlobalLimiter =
-    PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
-    {
-        Console.WriteLine(
-            $"Limiter: {httpContext.Request.Method} {httpContext.Request.Path}");
-
-        if (httpContext.Request.Path.Equals("/Account/Login", StringComparison.OrdinalIgnoreCase)
-            && HttpMethods.IsPost(httpContext.Request.Method))
-        {
-            Console.WriteLine("LOGIN POST MATCHED");
-
-            return RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                factory: _ => new FixedWindowRateLimiterOptions
+        PartitionedRateLimiter.Create<HttpContext, string>(
+            httpContext =>
+            {
+                if (
+                    httpContext.Request.Path.Equals(
+                        "/api/auth/login",
+                        StringComparison.OrdinalIgnoreCase)
+                    &&
+                    HttpMethods.IsPost(
+                        httpContext.Request.Method)
+                )
                 {
-                    PermitLimit = 3,
-                    Window = TimeSpan.FromMinutes(1),
-                    QueueLimit = 0,
-                    AutoReplenishment = true
-                });
-        }
+                    return RateLimitPartition
+                        .GetFixedWindowLimiter(
+                            httpContext.Connection
+                                .RemoteIpAddress?
+                                .ToString() ?? "unknown",
 
-        return RateLimitPartition.GetNoLimiter("NoLimit");
-    });
+                            _ => new FixedWindowRateLimiterOptions
+                            {
+                                PermitLimit = 3,
+
+                                Window =
+                                    TimeSpan.FromMinutes(1),
+
+                                QueueLimit = 0,
+
+                                AutoReplenishment = true
+                            });
+                }
+
+                return RateLimitPartition
+                    .GetNoLimiter("NoLimit");
+            });
 });
+
+
+// ============================================================
+// BUILD APPLICATION
+// ============================================================
 
 var app = builder.Build();
 
+
+// ============================================================
+// ERROR HANDLING
+// ============================================================
+
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
+    app.UseExceptionHandler("/error");
+
     app.UseHsts();
 }
+
+
+// ============================================================
+// HTTP PIPELINE
+// ============================================================
 
 app.UseHttpsRedirection();
 
@@ -88,27 +225,46 @@ app.UseRateLimiter();
 
 app.UseAuthentication();
 
+app.UseAuthorization();
+
+app.UseAntiforgery();
+
+
+// ============================================================
+// ACTIVE USER VALIDATION
+// ============================================================
+
 app.Use(async (context, next) =>
 {
     if (context.User.Identity?.IsAuthenticated == true)
     {
         var repository =
-            context.RequestServices.GetRequiredService<IUserRepository>();
+            context.RequestServices
+                .GetRequiredService<IUserRepository>();
 
         var idClaim =
-            context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            context.User.FindFirst(
+                ClaimTypes.NameIdentifier);
 
-        if (idClaim != null &&
-            int.TryParse(idClaim.Value, out int userId))
+        if (
+            idClaim != null &&
+            int.TryParse(
+                idClaim.Value,
+                out var userId)
+        )
         {
-            var user = await repository.GetByIdAsync(userId);
+            var user =
+                await repository.GetByIdAsync(userId);
 
             if (user == null || !user.IsActive)
             {
                 await context.SignOutAsync(
-                    CookieAuthenticationDefaults.AuthenticationScheme);
+                    CookieAuthenticationDefaults
+                        .AuthenticationScheme);
 
-                context.Response.Redirect("/Account/Login?message=deactivated");
+                context.Response.Redirect(
+                    "/account/login?message=deactivated");
+
                 return;
             }
         }
@@ -117,11 +273,139 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.UseAuthorization();
+
+// ============================================================
+// LOGIN API
+// ============================================================
+
+app.MapPost(
+    "/api/auth/login",
+    async (
+        HttpContext httpContext,
+        LoginRequest request,
+        IUserRepository userRepository) =>
+    {
+        var user =
+            await userRepository.GetByEmailAsync(
+                request.Email);
+
+        if (
+            user == null ||
+            !BCrypt.Net.BCrypt.Verify(
+                request.Password,
+                user.PasswordHash)
+        )
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!user.IsActive)
+        {
+            return Results.BadRequest(
+                new
+                {
+                    message =
+                        "Your account has been deactivated."
+                });
+        }
+
+
+        var claims = new List<Claim>
+        {
+            new Claim(
+                ClaimTypes.NameIdentifier,
+                user.UserId.ToString()),
+
+            new Claim(
+                ClaimTypes.Name,
+                $"{user.FirstName} {user.LastName}"),
+
+            new Claim(
+                ClaimTypes.Email,
+                user.Email),
+
+            new Claim(
+                ClaimTypes.Role,
+                user.RoleId == 1
+                    ? "Admin"
+                    : "User")
+        };
+
+
+        var identity =
+            new ClaimsIdentity(
+                claims,
+                CookieAuthenticationDefaults
+                    .AuthenticationScheme);
+
+
+        var principal =
+            new ClaimsPrincipal(identity);
+
+
+        await httpContext.SignInAsync(
+            CookieAuthenticationDefaults
+                .AuthenticationScheme,
+            principal);
+
+
+        var redirectUrl =
+            user.RoleId == 1
+                ? "/transactions"
+                : "/dashboard";
+
+
+        return Results.Ok(
+            new
+            {
+                redirectUrl
+            });
+    });
+
+
+// ============================================================
+// LOGOUT API
+// ============================================================
+
+app.MapPost(
+    "/api/auth/logout",
+    async (
+        HttpContext httpContext) =>
+    {
+        await httpContext.SignOutAsync(
+            CookieAuthenticationDefaults
+                .AuthenticationScheme);
+
+        return Results.Ok();
+    });
+
+
+// ============================================================
+// STATIC ASSETS
+// ============================================================
 
 app.MapStaticAssets();
 
-app.MapRazorPages()
-    .WithStaticAssets();
+
+// ============================================================
+// BLAZOR COMPONENTS
+// ============================================================
+
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
+
+
+// ============================================================
+// RUN
+// ============================================================
 
 app.Run();
+
+
+// ============================================================
+// REQUEST MODELS
+// ============================================================
+
+public record LoginRequest(
+    string Email,
+    string Password);

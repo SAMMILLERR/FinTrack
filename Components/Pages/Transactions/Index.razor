@@ -1,0 +1,530 @@
+@page "/transactions"
+@attribute [Authorize]
+@rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
+
+@using System.Security.Claims
+@using FinTrack.Models
+@using FinTrack.Services.Interfaces
+
+@inject ITransactionService TransactionService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Transactions</PageTitle>
+
+<h2 class="mb-4">
+    @(IsAdmin ? "All Transactions" : "Transactions")
+</h2>
+
+@if (IsLoading)
+{
+    <div class="alert alert-info">
+        Loading transactions...
+    </div>
+}
+else if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger">
+        @ErrorMessage
+    </div>
+}
+else
+{
+    @if (!IsAdmin)
+    {
+        <div class="mb-4">
+
+            <a href="/transactions/create?type=Income"
+               class="btn btn-success me-2">
+                + Income
+            </a>
+
+            <a href="/transactions/create?type=Expense"
+               class="btn btn-danger">
+                + Expense
+            </a>
+
+        </div>
+    }
+
+    <EditForm Model="this"
+              OnValidSubmit="Search"
+              FormName="transactionSearchForm">
+
+        <div class="row g-3 mb-4">
+
+            <div class="col-md-3">
+
+                <label class="form-label">
+                    From Date
+                </label>
+
+                <InputDate @bind-Value="FromDate"
+                           class="form-control" />
+
+            </div>
+
+            <div class="col-md-3">
+
+                <label class="form-label">
+                    To Date
+                </label>
+
+                <InputDate @bind-Value="ToDate"
+                           class="form-control" />
+
+            </div>
+
+            <div class="col-md-3">
+
+                <label class="form-label">
+                    Category
+                </label>
+
+                <InputSelect @bind-Value="CategoryId"
+                             class="form-select">
+
+                    <option value="">All</option>
+
+                    @foreach (var category in Categories)
+                    {
+                        <option value="@category.CategoryId">
+                            @category.CategoryName
+                        </option>
+                    }
+
+                </InputSelect>
+
+            </div>
+
+            <div class="col-md-2">
+
+                <label class="form-label">
+                    Type
+                </label>
+
+                <InputSelect @bind-Value="Type"
+                             class="form-select">
+
+                    <option value="">All</option>
+
+                    <option value="Income">
+                        Income
+                    </option>
+
+                    <option value="Expense">
+                        Expense
+                    </option>
+
+                </InputSelect>
+
+            </div>
+
+            <div class="col-md-1 d-flex align-items-end">
+
+                <button type="submit"
+                        class="btn btn-primary w-100">
+                    Search
+                </button>
+
+            </div>
+
+        </div>
+
+    </EditForm>
+
+    @if (!IsAdmin)
+    {
+        <div class="row mb-5">
+
+            <div class="col-md-4">
+
+                <div class="card text-bg-success shadow">
+
+                    <div class="card-body text-center">
+
+                        <h6>Total Income</h6>
+
+                        <h2>
+                            ₹ @Summary.TotalIncome
+                        </h2>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-4">
+
+                <div class="card text-bg-danger shadow">
+
+                    <div class="card-body text-center">
+
+                        <h6>Total Expense</h6>
+
+                        <h2>
+                            ₹ @Summary.TotalExpense
+                        </h2>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-4">
+
+                <div class="card text-bg-primary shadow">
+
+                    <div class="card-body text-center">
+
+                        <h6>Balance</h6>
+
+                        <h2>
+                            ₹ @Summary.Balance
+                        </h2>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <hr />
+    }
+
+    <h3 class="mb-3">
+        Transaction List
+    </h3>
+
+    @if (!Transactions.Any())
+    {
+        <div class="alert alert-secondary">
+            No transactions found for the selected filters.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+
+            <table class="table table-bordered table-hover">
+
+                <thead class="table-dark">
+
+                    <tr>
+
+                        <th>Date</th>
+
+                        @if (IsAdmin)
+                        {
+                            <th>User</th>
+                        }
+
+                        <th>Category</th>
+
+                        <th>Type</th>
+
+                        <th>Amount</th>
+
+                        <th>Description</th>
+
+                        @if (!IsAdmin)
+                        {
+                            <th>Actions</th>
+                        }
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    @foreach (var item in Transactions)
+                    {
+                        <tr>
+
+                            <td>
+                                @item.TransactionDate.ToShortDateString()
+                            </td>
+
+                            @if (IsAdmin)
+                            {
+                                <td>
+                                    @item.UserName
+                                </td>
+                            }
+
+                            <td>
+                                @item.CategoryName
+                            </td>
+
+                            <td>
+
+                                @if (item.TransactionType == "Income")
+                                {
+                                    <span class="badge bg-success">
+                                        Income
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">
+                                        Expense
+                                    </span>
+                                }
+
+                            </td>
+
+                            <td>
+
+                                @if (item.TransactionType == "Income")
+                                {
+                                    <span class="text-success fw-bold">
+                                        + ₹ @item.Amount
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-danger fw-bold">
+                                        - ₹ @item.Amount
+                                    </span>
+                                }
+
+                            </td>
+
+                            <td>
+                                @item.Description
+                            </td>
+
+                            @if (!IsAdmin)
+                            {
+                                <td>
+
+                                    <a href="/transactions/edit/@item.TransactionId"
+                                       class="btn btn-warning btn-sm me-1">
+                                        Edit
+                                    </a>
+
+                                    <a href="/transactions/delete/@item.TransactionId"
+                                       class="btn btn-danger btn-sm">
+                                        Delete
+                                    </a>
+
+                                </td>
+                            }
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+    }
+
+    @if (TotalPages > 1)
+    {
+        <nav class="mt-4">
+
+            <ul class="pagination justify-content-center">
+
+                <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
+
+                    <button class="page-link"
+                            disabled="@(CurrentPage == 1)"
+                            @onclick="PreviousPage">
+
+                        Previous
+
+                    </button>
+
+                </li>
+
+                @for (var i = 1; i <= TotalPages; i++)
+                {
+                    var pageNumber = i;
+
+                    <li class="page-item @(pageNumber == CurrentPage ? "active" : "")">
+
+                        <button class="page-link"
+                                @onclick="() => GoToPage(pageNumber)">
+
+                            @pageNumber
+
+                        </button>
+
+                    </li>
+                }
+
+                <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
+
+                    <button class="page-link"
+                            disabled="@(CurrentPage == TotalPages)"
+                            @onclick="NextPage">
+
+                        Next
+
+                    </button>
+
+                </li>
+
+            </ul>
+
+        </nav>
+    }
+}
+
+@code
+{
+    private const int PageSize = 10;
+
+    private IEnumerable<Transaction> Transactions =
+        new List<Transaction>();
+
+    private IEnumerable<Category> Categories =
+        new List<Category>();
+
+    private TransactionSummary Summary = new();
+
+    private DateTime? FromDate;
+
+    private DateTime? ToDate;
+
+    private int? CategoryId;
+
+    private string? Type;
+
+    private int CurrentPage = 1;
+
+    private int TotalPages;
+
+    private bool IsAdmin;
+
+    private bool IsLoading = true;
+
+    private string? ErrorMessage;
+
+    private int? UserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authenticationState =
+                await AuthenticationStateProvider
+                    .GetAuthenticationStateAsync();
+
+            var user =
+                authenticationState.User;
+
+            IsAdmin =
+                user.IsInRole("Admin");
+
+            if (!IsAdmin)
+            {
+                var claim =
+                    user.FindFirst(
+                        ClaimTypes.NameIdentifier);
+
+                if (claim == null ||
+                    !int.TryParse(
+                        claim.Value,
+                        out var id))
+                {
+                    ErrorMessage =
+                        "Unable to identify the current user.";
+
+                    return;
+                }
+
+                UserId = id;
+            }
+
+            Categories =
+                await TransactionService
+                    .GetCategoriesAsync();
+
+            await LoadTransactions();
+        }
+        catch (Exception)
+        {
+            ErrorMessage =
+                "Unable to load transactions right now.";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task LoadTransactions()
+    {
+        var result =
+            await TransactionService.GetTransactionsAsync(
+                UserId,
+                FromDate,
+                ToDate,
+                CategoryId,
+                Type,
+                CurrentPage,
+                PageSize);
+
+        Transactions =
+            result.Transactions;
+
+        Summary =
+            result.Summary;
+
+        CurrentPage =
+            result.CurrentPage;
+
+        TotalPages =
+            result.TotalPages;
+    }
+
+    private async Task Search()
+    {
+        CurrentPage = 1;
+
+        await LoadTransactions();
+    }
+
+    private async Task PreviousPage()
+    {
+        if (CurrentPage <= 1)
+        {
+            return;
+        }
+
+        CurrentPage--;
+
+        await LoadTransactions();
+    }
+
+    private async Task NextPage()
+    {
+        if (CurrentPage >= TotalPages)
+        {
+            return;
+        }
+
+        CurrentPage++;
+
+        await LoadTransactions();
+    }
+
+    private async Task GoToPage(int page)
+    {
+        if (page < 1 || page > TotalPages)
+        {
+            return;
+        }
+
+        CurrentPage = page;
+
+        await LoadTransactions();
+    }
+}

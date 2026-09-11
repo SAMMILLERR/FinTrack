@@ -1,0 +1,94 @@
+@page "/admin/categories/create"
+@attribute [Authorize(Roles = "Admin")]
+
+@using FinTrack.Models
+@using FinTrack.Services.Interfaces
+
+@inject ICategoryService CategoryService
+@inject NavigationManager Navigation
+
+<PageTitle>Create Category</PageTitle>
+
+<h2>Create Category</h2>
+
+<EditForm Model="@Category" OnValidSubmit="@SaveCategory">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label class="form-label">Category Name</label>
+
+        <InputText @bind-Value="Category.CategoryName"
+                   class="form-control" />
+
+        <ValidationMessage For="@(() => Category.CategoryName)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Category Type</label>
+
+        <InputSelect @bind-Value="Category.CategoryTypeId"
+                     class="form-select">
+
+            <option value="0">Select Type</option>
+
+            @foreach (var type in CategoryTypes)
+            {
+                <option value="@type.CategoryTypeId">
+                    @type.TypeName
+                </option>
+            }
+
+        </InputSelect>
+    </div>
+
+    <div class="form-check">
+        <InputCheckbox @bind-Value="Category.IsActive"
+                       class="form-check-input" />
+
+        <label class="form-check-label">
+            Active
+        </label>
+    </div>
+
+    <br />
+
+    <button type="submit"
+            class="btn btn-success me-2">
+        Save
+    </button>
+
+    <button type="button"
+            class="btn btn-secondary"
+            @onclick="Cancel">
+        Cancel
+    </button>
+</EditForm>
+
+@code {
+    private Category Category = new()
+    {
+        IsActive = true
+    };
+
+    private IEnumerable<CategoryType> CategoryTypes =
+        new List<CategoryType>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        CategoryTypes =
+            await CategoryService.GetCategoryTypesAsync();
+    }
+
+    private async Task SaveCategory()
+    {
+        await CategoryService.AddCategoryAsync(Category);
+
+        Navigation.NavigateTo("/admin/categories");
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/admin/categories");
+    }
+}

@@ -1,0 +1,240 @@
+@page "/budgets/edit/{Id:int}"
+@rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
+
+@attribute [Authorize(Roles = "User")]
+
+@using System.Security.Claims
+@using FinTrack.Models
+@using FinTrack.Services.Interfaces
+
+@inject IBudgetService BudgetService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Edit Budget</PageTitle>
+
+@if (IsLoading)
+{
+    <div class="alert alert-info">
+        Loading budget...
+    </div>
+}
+else if (NotFound)
+{
+    <div class="alert alert-danger">
+        Budget not found.
+    </div>
+
+    <button type="button"
+            class="btn btn-secondary"
+            @onclick="Cancel">
+        Back
+    </button>
+}
+else
+{
+    <h2 class="mb-4">
+        Edit Budget
+    </h2>
+
+    <EditForm Model="Budget"
+              OnValidSubmit="UpdateBudget"
+              FormName="budgetEditForm">
+
+        <DataAnnotationsValidator />
+
+        <ValidationSummary />
+
+        <div class="mb-3">
+
+            <label class="form-label">
+                Category
+            </label>
+
+            <InputSelect @bind-Value="Budget.CategoryId"
+                         class="form-select">
+
+                <option value="0">
+                    -- Select Category --
+                </option>
+
+                @foreach (var category in Categories)
+                {
+                    <option value="@category.CategoryId">
+                        @category.CategoryName
+                    </option>
+                }
+
+            </InputSelect>
+
+            <ValidationMessage For="@(() => Budget.CategoryId)" />
+
+        </div>
+
+        <div class="mb-3">
+
+            <label class="form-label">
+                Month
+            </label>
+
+            <InputNumber @bind-Value="Budget.BudgetMonth"
+                         class="form-control" />
+
+            <ValidationMessage For="@(() => Budget.BudgetMonth)" />
+
+        </div>
+
+        <div class="mb-3">
+
+            <label class="form-label">
+                Year
+            </label>
+
+            <InputNumber @bind-Value="Budget.BudgetYear"
+                         class="form-control" />
+
+            <ValidationMessage For="@(() => Budget.BudgetYear)" />
+
+        </div>
+
+        <div class="mb-3">
+
+            <label class="form-label">
+                Budget Limit
+            </label>
+
+            <InputNumber @bind-Value="Budget.LimitAmount"
+                         class="form-control" />
+
+            <ValidationMessage For="@(() => Budget.LimitAmount)" />
+
+        </div>
+
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="alert alert-danger">
+                @ErrorMessage
+            </div>
+        }
+
+        <button type="submit"
+                class="btn btn-warning"
+                disabled="@IsSaving">
+
+            @(IsSaving ? "Updating..." : "Update")
+
+        </button>
+
+        <button type="button"
+                class="btn btn-secondary ms-2"
+                disabled="@IsSaving"
+                @onclick="Cancel">
+
+            Cancel
+
+        </button>
+
+    </EditForm>
+}
+
+@code
+{
+    [Parameter]
+    public int Id { get; set; }
+
+    private Budget Budget { get; set; } = new();
+
+    private List<Category> Categories { get; set; } = new();
+
+    private bool IsLoading = true;
+
+    private bool IsSaving;
+
+    private bool NotFound;
+
+    private string? ErrorMessage;
+
+    private int UserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authenticationState =
+                await AuthenticationStateProvider
+                    .GetAuthenticationStateAsync();
+
+            var claim =
+                authenticationState.User.FindFirst(
+                    ClaimTypes.NameIdentifier);
+
+            if (claim == null ||
+                !int.TryParse(claim.Value, out UserId))
+            {
+                ErrorMessage =
+                    "Unable to identify the current user.";
+
+                return;
+            }
+
+            var budget =
+                await BudgetService.GetBudgetAsync(
+                    Id,
+                    UserId);
+
+            if (budget == null)
+            {
+                NotFound = true;
+                return;
+            }
+
+            Budget = budget;
+
+            var categories =
+                await BudgetService
+                    .GetExpenseCategoriesAsync();
+
+            Categories =
+                categories.ToList();
+        }
+        catch (Exception)
+        {
+            ErrorMessage =
+                "Unable to load the budget right now.";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task UpdateBudget()
+    {
+        try
+        {
+            IsSaving = true;
+            ErrorMessage = null;
+
+            Budget.UserId = UserId;
+
+            await BudgetService
+                .UpdateBudgetAsync(Budget);
+
+            Navigation.NavigateTo("/budgets");
+        }
+        catch (Exception)
+        {
+            ErrorMessage =
+                "Unable to update the budget right now.";
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/budgets");
+    }
+}

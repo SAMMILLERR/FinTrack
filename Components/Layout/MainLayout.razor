@@ -1,0 +1,20 @@
+@inherits LayoutComponentBase
+
+<div class="page">
+
+    <header>
+        <NavMenu />
+    </header>
+
+    <main class="container mt-4 mb-5 flex-grow-1">
+        @Body
+    </main>
+
+    <footer class="bg-dark text-white text-center py-3 mt-auto">
+        <div class="container">
+            © @DateTime.Now.Year FinTrack
+            • Personal Expense & Budget Manager
+        </div>
+    </footer>
+
+</div>

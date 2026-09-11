@@ -27,4 +27,5 @@ public class Transaction
 
     public DateTime CreatedOn { get; set; }
     public string UserName { get; set; } = "";
+    public int? RecurringPaymentId { get; set; }
 }

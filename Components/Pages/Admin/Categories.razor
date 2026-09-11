@@ -1,0 +1,178 @@
+@page "/admin/categories"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
+
+@using FinTrack.Models
+@using FinTrack.Services.Interfaces
+
+@inject ICategoryService CategoryService
+
+<PageTitle>Categories</PageTitle>
+
+<h2 class="mb-4">Categories</h2>
+
+<p>
+    <a href="/admin/categories/create"
+       class="btn btn-primary">
+        Create New Category
+    </a>
+</p>
+
+@if (IsLoading)
+{
+    <div class="alert alert-info">
+        Loading categories...
+    </div>
+}
+else if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger">
+        @ErrorMessage
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+
+        <table class="table table-bordered table-striped">
+
+            <thead class="table-dark">
+                <tr>
+                    <th>Id</th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Active</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                @foreach (var item in CategoryList)
+                {
+                    <tr>
+
+                        <td>
+                            @item.CategoryId
+                        </td>
+
+                        <td>
+                            @item.CategoryName
+                        </td>
+
+                        <td>
+                            @if (item.CategoryTypeName == "Income")
+                            {
+                                <span class="badge bg-success">
+                                    Income
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">
+                                    Expense
+                                </span>
+                            }
+                        </td>
+
+                        <td>
+                            @if (item.IsActive)
+                            {
+                                <span class="badge bg-success">
+                                    Active
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">
+                                    Inactive
+                                </span>
+                            }
+                        </td>
+
+                        <td>
+
+                            <a href="@($"/admin/categories/edit/{item.CategoryId}")"
+                               class="btn btn-warning btn-sm me-1">
+                                Edit
+                            </a>
+
+                            @if (item.IsActive)
+                            {
+                                <button type="button"
+                                        class="btn btn-secondary btn-sm"
+                                        @onclick="() => ToggleStatus(item.CategoryId)">
+                                    Deactivate
+                                </button>
+                            }
+                            else
+                            {
+                                <button type="button"
+                                        class="btn btn-success btn-sm"
+                                        @onclick="() => ToggleStatus(item.CategoryId)">
+                                    Activate
+                                </button>
+                            }
+
+                        </td>
+
+                    </tr>
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+}
+
+@code {
+
+    private IEnumerable<Category> CategoryList =
+        new List<Category>();
+
+    private bool IsLoading = true;
+
+    private string? ErrorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategories();
+    }
+
+    private async Task LoadCategories()
+    {
+        try
+        {
+            IsLoading = true;
+            ErrorMessage = null;
+
+            CategoryList =
+                await CategoryService.GetCategoriesAsync();
+        }
+        catch
+        {
+            ErrorMessage =
+                "Unable to load categories right now.";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task ToggleStatus(int categoryId)
+    {
+        try
+        {
+            await CategoryService.ToggleStatusAsync(categoryId);
+
+            await LoadCategories();
+        }
+        catch
+        {
+            ErrorMessage =
+                "Unable to change category status.";
+        }
+    }
+}

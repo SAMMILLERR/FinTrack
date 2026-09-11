@@ -1,0 +1,246 @@
+@page "/recurring-payments"
+@rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
+
+@using System.Security.Claims
+@using FinTrack.Models
+@using FinTrack.Services.Interfaces
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+@attribute [Authorize(Roles = "User")]
+
+@inject IRecurringPaymentService RecurringPaymentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Recurring Payments</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1>Recurring Payments</h1>
+        <p class="text-muted mb-0">
+            Manage payments that are automatically added to your transactions.
+        </p>
+    </div>
+
+    <a href="/recurring-payments/create"
+       class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i>
+        Add Recurring Payment
+    </a>
+</div>
+
+@if (IsLoading)
+{
+    <div class="text-center mt-5">
+        <div class="spinner-border" role="status"></div>
+        <p class="mt-2">Loading recurring payments...</p>
+    </div>
+}
+else if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger">
+        @ErrorMessage
+    </div>
+}
+else if (!RecurringPayments.Any())
+{
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-arrow-repeat display-4 text-muted"></i>
+
+            <h4 class="mt-3">
+                No recurring payments
+            </h4>
+
+            <p class="text-muted">
+                Create a recurring payment and FinTrack will
+                automatically add transactions when they become due.
+            </p>
+
+            <a href="/recurring-payments/create"
+               class="btn btn-primary">
+                Create Your First Recurring Payment
+            </a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+
+                <table class="table table-hover mb-0 align-middle">
+
+                    <thead>
+                        <tr>
+                            <th>Payment</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>Frequency</th>
+                            <th>Next Payment</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        @foreach (var payment in RecurringPayments)
+                        {
+                            <tr>
+
+                                <td>
+                                    <strong>
+                                        @payment.PaymentName
+                                    </strong>
+                                </td>
+
+                                <td>
+                                    @payment.CategoryName
+                                </td>
+
+                                <td>
+                                    ₹@payment.Amount.ToString("N2")
+                                </td>
+
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        @payment.Frequency
+                                    </span>
+                                </td>
+
+                                <td>
+                                    @payment.NextPaymentDate.ToString("dd MMM yyyy")
+                                </td>
+
+                                <td>
+                                    @if (payment.IsActive)
+                                    {
+                                        <span class="badge bg-success">
+                                            Active
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">
+                                            Paused
+                                        </span>
+                                    }
+                                </td>
+
+                                <td class="text-end">
+
+                                    <a href="@($"/recurring-payments/edit/{payment.RecurringPaymentId}")"
+                                       class="btn btn-sm btn-outline-primary me-1">
+                                        <i class="bi bi-pencil"></i>
+                                        Edit
+                                    </a>
+
+                                    <button class="btn btn-sm @(payment.IsActive
+                                        ? "btn-outline-warning"
+                                        : "btn-outline-success")"
+                                            @onclick="() => ToggleStatus(payment)">
+                                        <i class="bi @(payment.IsActive
+                                            ? "bi-pause"
+                                            : "bi-play")"></i>
+
+                                        @(payment.IsActive ? "Pause" : "Resume")
+                                    </button>
+
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+    </div>
+}
+
+@code {
+
+    private List<RecurringPayment> RecurringPayments = new();
+
+    private bool IsLoading = true;
+
+    private string? ErrorMessage;
+
+    private int UserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState =
+                await AuthenticationStateProvider
+                    .GetAuthenticationStateAsync();
+
+            var user =
+                authState.User;
+
+            var userIdClaim =
+                user.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (userIdClaim == null ||
+                !int.TryParse(userIdClaim.Value, out UserId))
+            {
+                ErrorMessage =
+                    "Unable to identify the current user.";
+
+                return;
+            }
+
+            await LoadRecurringPayments();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage =
+                "Unable to load recurring payments.";
+
+            Console.WriteLine(ex);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task LoadRecurringPayments()
+    {
+        var payments =
+            await RecurringPaymentService
+                .GetRecurringPaymentsAsync(UserId);
+
+        RecurringPayments =
+            payments.ToList();
+    }
+
+    private async Task ToggleStatus(
+        RecurringPayment payment)
+    {
+        try
+        {
+            await RecurringPaymentService
+                .ToggleStatusAsync(
+                    payment.RecurringPaymentId,
+                    UserId);
+
+            await LoadRecurringPayments();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage =
+                "Unable to update the recurring payment.";
+
+            Console.WriteLine(ex);
+        }
+    }
+}

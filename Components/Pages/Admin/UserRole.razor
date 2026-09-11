@@ -1,0 +1,30 @@
+@page "/admin/users/role/{Id:int}/{RoleId:int}"
+@attribute [Authorize(Roles = "Admin")]
+
+@using FinTrack.Services.Interfaces
+
+@inject IUserService UserService
+@inject NavigationManager Navigation
+
+<PageTitle>Change User Role</PageTitle>
+
+<div class="container mt-4">
+    <div class="alert alert-info">
+        Updating user role...
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    [Parameter]
+    public int RoleId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await UserService.ToggleRoleAsync(Id, RoleId);
+
+        Navigation.NavigateTo("/admin/users", forceLoad: true);
+    }
+}

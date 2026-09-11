@@ -1,56 +1,278 @@
-body.dark-mode{
-    background:#121212 !important;
-    color:#f1f1f1 !important;
+/* ================================
+   FINTRACK DARK MODE
+   ================================ */
+
+body.dark-mode {
+    background-color: #121212;
+    color: #e9ecef;
 }
 
-body.dark-mode .card{
-    background:#1f1f1f;
-    color:white;
+/* Main content */
+body.dark-mode main {
+    color: #e9ecef;
 }
 
-body.dark-mode .table{
-    color:white;
+/* Headings */
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4,
+body.dark-mode h5,
+body.dark-mode h6 {
+    color: #ffffff;
 }
 
-body.dark-mode .table-bordered{
-    border-color:#555;
+/* ================================
+   CARDS
+   ================================ */
+
+body.dark-mode .card {
+    background-color: #1e1e1e;
+    color: #e9ecef;
+    border-color: #333333;
 }
 
-body.dark-mode .table-dark{
-    background:#222;
+body.dark-mode .card-header,
+body.dark-mode .card-footer {
+    background-color: #252525;
+    color: #ffffff;
+    border-color: #333333;
 }
 
-body.dark-mode .navbar{
-    background:#000 !important;
+/* ================================
+   TABLES
+   ================================ */
+
+body.dark-mode .table {
+    --bs-table-bg: #1e1e1e;
+    --bs-table-color: #ffffff;
+    --bs-table-border-color: #444444;
+    color: #ffffff !important;
+    background-color: #1e1e1e !important;
 }
 
-body.dark-mode .footer{
-    background:#000 !important;
-    color:white;
+body.dark-mode .table thead,
+body.dark-mode .table thead th {
+    color: #ffffff !important;
+    background-color: #252525 !important;
+}
+
+body.dark-mode .table tbody,
+body.dark-mode .table tbody tr,
+body.dark-mode .table tbody td,
+body.dark-mode .table tbody th {
+    color: #ffffff !important;
+    background-color: #1e1e1e !important;
+    border-color: #444444 !important;
+}
+
+body.dark-mode .table-hover > tbody > tr:hover > * {
+    --bs-table-hover-bg: #2a2a2a;
+    --bs-table-hover-color: #ffffff;
+
+    color: #ffffff !important;
+    background-color: #2a2a2a !important;
+}
+
+/* Links inside tables */
+body.dark-mode .table a {
+    color: #66b3ff !important;
+}
+
+/* ================================
+   FORMS
+   ================================ */
+
+body.dark-mode label {
+    color: #ffffff;
+}
+
+body.dark-mode .form-label {
+    color: #ffffff;
 }
 
 body.dark-mode .form-control,
-body.dark-mode .form-select{
-    background:#222;
-    color:white;
-    border-color:#555;
+body.dark-mode .form-select {
+    background-color: #2a2a2a !important;
+    color: #ffffff !important;
+    border-color: #555555 !important;
 }
 
 body.dark-mode .form-control:focus,
-body.dark-mode .form-select:focus{
-    background:#222;
-    color:white;
+body.dark-mode .form-select:focus {
+    background-color: #2a2a2a !important;
+    color: #ffffff !important;
+    border-color: #66b3ff !important;
+    box-shadow: 0 0 0 0.2rem rgba(102, 179, 255, 0.25);
 }
 
-body.dark-mode .alert{
-    color:white;
+body.dark-mode .form-control::placeholder {
+    color: #aaaaaa !important;
 }
 
-body.dark-mode a{
-    color:#6ea8fe;
+body.dark-mode .form-select option {
+    background-color: #2a2a2a;
+    color: #ffffff;
 }
 
-body.dark-mode .modal-content{
-    background:#1f1f1f;
-    color:white;
+/* ================================
+   LOGIN / REGISTER
+   ================================ */
+
+body.dark-mode .auth-container {
+    color: #ffffff;
+}
+
+body.dark-mode .auth-container .card {
+    background-color: #1e1e1e;
+    color: #ffffff;
+    border-color: #333333;
+}
+
+body.dark-mode .auth-container h1,
+body.dark-mode .auth-container h2,
+body.dark-mode .auth-container h3,
+body.dark-mode .auth-container p {
+    color: #ffffff;
+}
+
+body.dark-mode .auth-container label {
+    color: #ffffff;
+}
+
+body.dark-mode .auth-container a {
+    color: #66b3ff;
+}
+
+/* If login/register use Bootstrap card without auth-container */
+body.dark-mode .login-card,
+body.dark-mode .register-card {
+    background-color: #1e1e1e !important;
+    color: #ffffff !important;
+    border-color: #333333 !important;
+}
+
+body.dark-mode .login-card *,
+body.dark-mode .register-card * {
+    color: inherit;
+}
+
+body.dark-mode .login-card .form-control,
+body.dark-mode .register-card .form-control {
+    background-color: #2a2a2a !important;
+    color: #ffffff !important;
+}
+
+/* ================================
+   VALIDATION
+   ================================ */
+
+body.dark-mode .validation-message {
+    color: #ff8a8a !important;
+}
+
+body.dark-mode .text-danger {
+    color: #ff8a8a !important;
+}
+
+body.dark-mode .text-muted {
+    color: #adb5bd !important;
+}
+
+/* ================================
+   ALERTS
+   ================================ */
+
+body.dark-mode .alert-info {
+    background-color: #123b4a;
+    color: #d9f3ff;
+    border-color: #1c6075;
+}
+
+body.dark-mode .alert-danger {
+    background-color: #4a1c20;
+    color: #ffd9dc;
+    border-color: #7a2931;
+}
+
+body.dark-mode .alert-success {
+    background-color: #163d25;
+    color: #d8ffe5;
+    border-color: #276a3d;
+}
+
+body.dark-mode .alert-warning {
+    background-color: #4a3b12;
+    color: #fff3cd;
+    border-color: #806b20;
+}
+
+/* ================================
+   BUTTONS
+   ================================ */
+
+body.dark-mode .btn-secondary {
+    color: #ffffff;
+}
+
+body.dark-mode .btn-light {
+    background-color: #2a2a2a;
+    color: #ffffff;
+    border-color: #555555;
+}
+
+body.dark-mode .btn-light:hover {
+    background-color: #3a3a3a;
+    color: #ffffff;
+}
+
+/* ================================
+   LINKS
+   ================================ */
+
+body.dark-mode a {
+    color: #66b3ff;
+}
+
+body.dark-mode a:hover {
+    color: #99ccff;
+}
+
+/* ================================
+   NAVBAR
+   ================================ */
+
+body.dark-mode .navbar {
+    background-color: #0d0d0d !important;
+}
+
+/* ================================
+   FOOTER
+   ================================ */
+
+body.dark-mode .footer,
+body.dark-mode footer {
+    background-color: #0d0d0d !important;
+    color: #ffffff !important;
+}
+
+/* ================================
+   HR / BORDERS
+   ================================ */
+
+body.dark-mode hr {
+    border-color: #444444;
+    opacity: 1;
+}
+
+body.dark-mode .border {
+    border-color: #444444 !important;
+}
+
+body.dark-mode .border-top {
+    border-color: #444444 !important;
+}
+
+body.dark-mode .border-bottom {
+    border-color: #444444 !important;
 }
