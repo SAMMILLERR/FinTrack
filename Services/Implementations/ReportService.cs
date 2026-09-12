@@ -15,6 +15,11 @@ public class ReportService : IReportService
         _reportRepository = reportRepository;
     }
 
+
+    // ============================================================
+    // EXISTING CURRENT-MONTH REPORT
+    // ============================================================
+
     public async Task<IEnumerable<CategoryReport>>
         GetCurrentMonthReportAsync(int userId)
     {
@@ -24,27 +29,122 @@ public class ReportService : IReportService
             DateTime.Today.Year);
     }
 
-    public async Task<byte[]> ExportCurrentMonthReportAsync(
-        int userId)
+
+    // ============================================================
+    // EXISTING CSV EXPORT
+    // ============================================================
+
+    public async Task<string>
+        ExportCurrentMonthReportAsync(int userId)
     {
         var report =
             await GetCurrentMonthReportAsync(userId);
 
         var builder = new StringBuilder();
 
-        builder.AppendLine("Category,TotalAmount");
+        builder.AppendLine(
+            "Category,TotalAmount");
 
         foreach (var item in report)
         {
-            var categoryName =
-                item.CategoryName?
+            var category =
+                item.CategoryName
                     .Replace("\"", "\"\"");
 
             builder.AppendLine(
-                $"\"{categoryName}\",{item.TotalAmount}");
+                $"\"{category}\",{item.TotalAmount}");
         }
 
-        return Encoding.UTF8.GetBytes(
-            builder.ToString());
+        return builder.ToString();
+    }
+
+
+    // ============================================================
+    // NEW FILTERED REPORT
+    // ============================================================
+
+    public async Task<FinancialReport>
+        GenerateReportAsync(
+            int userId,
+            DateTime fromDate,
+            DateTime toDate,
+            string transactionFilter)
+    {
+        if (fromDate.Date > toDate.Date)
+        {
+            throw new ArgumentException(
+                "From date cannot be after To date.");
+        }
+
+        transactionFilter =
+            transactionFilter switch
+            {
+                "Income" => "Income",
+
+                "Expense" => "Expense",
+
+                _ => "Both"
+            };
+
+
+        var categories =
+            (
+                await _reportRepository
+                    .GetCategoryReportAsync(
+                        userId,
+                        fromDate,
+                        toDate,
+                        transactionFilter)
+            ).ToList();
+
+
+        var summary =
+            await _reportRepository
+                .GetReportSummaryAsync(
+                    userId,
+                    fromDate,
+                    toDate,
+                    transactionFilter);
+
+
+        var total =
+            categories.Sum(x => x.Amount);
+
+
+        if (total > 0)
+        {
+            foreach (var category in categories)
+            {
+                category.Percentage =
+                    Math.Round(
+                        category.Amount /
+                        total *
+                        100,
+                        1);
+            }
+        }
+
+
+        return new FinancialReport
+        {
+            FromDate = fromDate.Date,
+
+            ToDate = toDate.Date,
+
+            TransactionFilter =
+                transactionFilter,
+
+            TotalIncome =
+                summary.TotalIncome,
+
+            TotalExpense =
+                summary.TotalExpense,
+
+            TransactionCount =
+                summary.TransactionCount,
+
+            Categories =
+                categories
+        };
     }
 }

@@ -1,33 +1,6 @@
 window.FinTrack = {
 
-    toggleTheme: function () {
-
-        document.body.classList.toggle("dark-mode");
-
-        const isDark =
-            document.body.classList.contains("dark-mode");
-
-        localStorage.setItem(
-            "theme",
-            isDark ? "dark" : "light"
-        );
-    },
-
-    loadTheme: function () {
-
-        const theme =
-            localStorage.getItem("theme");
-
-        if (theme === "dark") {
-
-            document.body.classList.add("dark-mode");
-
-        } else {
-
-            document.body.classList.remove("dark-mode");
-
-        }
-    },
+ 
 
     auth: {
 

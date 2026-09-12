@@ -1,7 +1,7 @@
 @page "/reports"
 @rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
 
-@attribute [Authorize(Roles = "User")]
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "User")]
 
 @using System.Security.Claims
 @using FinTrack.Models
@@ -9,193 +9,412 @@
 
 @inject IReportService ReportService
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject IJSRuntime JS
 
-<PageTitle>Reports</PageTitle>
+<PageTitle>Reports | FinTrack</PageTitle>
 
-<h2 class="mb-4">
-    Expense Report
-</h2>
+<div class="reports-page">
 
-@if (IsLoading)
-{
-    <div class="alert alert-info">
-        Loading expense report...
-    </div>
-}
-else if (!string.IsNullOrEmpty(ErrorMessage))
-{
-    <div class="alert alert-danger">
-        @ErrorMessage
-    </div>
-}
-else
-{
-    <div class="mb-4">
-        <button type="button"
-                class="btn btn-success"
-                @onclick="ExportCsv"
-                disabled="@IsExporting">
+    <!-- =====================================================
+         HEADER
+         ===================================================== -->
 
-            <i class="bi bi-file-earmark-arrow-down"></i>
+    <div class="reports-header">
 
-            @(IsExporting ? "Exporting..." : "Export CSV")
+        <span class="reports-eyebrow">
+            FINANCIAL ANALYTICS
+        </span>
 
-        </button>
+        <h1>Reports</h1>
+
+        <p>
+            Analyze your income and spending over any period.
+        </p>
+
     </div>
 
-    @if (!Reports.Any())
+
+    <!-- =====================================================
+         ERROR
+         ===================================================== -->
+
+    @if (!string.IsNullOrWhiteSpace(ErrorMessage))
     {
-        <div class="alert alert-info">
-            No expenses found for the current month.
+        <div class="report-error">
+
+            <i class="bi bi-exclamation-triangle-fill"></i>
+
+            <div>
+
+                <strong>
+                    Unable to generate report
+                </strong>
+
+                <span>
+                    @ErrorMessage
+                </span>
+
+            </div>
+
         </div>
     }
-    else
-    {
-        <div class="table-responsive mb-4">
 
-            <table class="table table-bordered table-striped">
 
-                <thead class="table-dark">
-                    <tr>
-                        <th>Category</th>
-                        <th>Total Amount</th>
-                    </tr>
-                </thead>
+    <!-- =====================================================
+         FILTER PANEL
+         ===================================================== -->
 
-                <tbody>
-                    @foreach (var item in Reports)
-                    {
-                        <tr>
-                            <td>@item.CategoryName</td>
+    <section class="report-filter-card">
 
-                            <td>
-                                ₹ @item.TotalAmount.ToString("N2")
-                            </td>
-                        </tr>
-                    }
-                </tbody>
+        <!-- TRANSACTION TYPE -->
 
-            </table>
+        <div class="filter-row filter-type-row">
+
+            <div class="filter-label">
+                Show:
+            </div>
+
+            <div class="radio-group">
+
+                <label class="report-radio">
+
+                    <input type="radio"
+                           name="transactionType"
+                           checked="@IsExpenseFilter"
+                           @onclick="SetExpenseFilter" />
+
+                    <span class="radio-circle"></span>
+
+                    <span>
+                        Expenses
+                    </span>
+
+                </label>
+
+
+                <label class="report-radio">
+
+                    <input type="radio"
+                           name="transactionType"
+                           checked="@IsIncomeFilter"
+                           @onclick="SetIncomeFilter" />
+
+                    <span class="radio-circle"></span>
+
+                    <span>
+                        Income
+                    </span>
+
+                </label>
+
+
+                <label class="report-radio">
+
+                    <input type="radio"
+                           name="transactionType"
+                           checked="@IsBothFilter"
+                           @onclick="SetBothFilter" />
+
+                    <span class="radio-circle"></span>
+
+                    <span>
+                        Both
+                    </span>
+
+                </label>
+
+            </div>
 
         </div>
 
-        <div class="row g-4">
 
-            <!-- PIE CHART -->
+        <!-- DATE FILTERS -->
 
-            <div class="col-md-6">
+        <div class="filter-grid">
 
-                <div class="card shadow-sm h-100">
+            <div class="filter-field">
 
-                    <div class="card-body">
+                <label>
+                    From:
+                </label>
 
-                        <h5 class="card-title mb-4">
-                            Expense Distribution
-                        </h5>
+                <InputDate @bind-Value="FromDate"
+                           class="report-input" />
 
-                        @{
-                            var total =
-                                Reports.Sum(x => x.TotalAmount);
+            </div>
 
-                            var cumulativePercentage = 0.0;
 
-                            var pieColors = new[]
-                            {
-                                "#0d6efd",
-                                "#198754",
-                                "#dc3545",
-                                "#ffc107",
-                                "#6f42c1",
-                                "#20c997",
-                                "#fd7e14",
-                                "#d63384"
-                            };
+            <div class="filter-field">
 
-                            var gradientParts =
-                                new List<string>();
+                <label>
+                    To:
+                </label>
 
-                            var colorIndex = 0;
+                <InputDate @bind-Value="ToDate"
+                           class="report-input" />
 
-                            foreach (var item in Reports)
-                            {
-                                var percentage =
-                                    total == 0
-                                        ? 0
-                                        : (double)(
-                                            item.TotalAmount / total) * 100;
+            </div>
 
-                                var start =
-                                    cumulativePercentage;
 
-                                var end =
-                                    cumulativePercentage +
-                                    percentage;
+            <div class="filter-field">
 
-                                var color =
-                                    pieColors[
-                                        colorIndex %
-                                        pieColors.Length];
+                <label>
+                    Period:
+                </label>
 
-                                gradientParts.Add(
-                                    $"{color} {start}% {end}%");
+                <select class="report-input"
+                        @bind="SelectedPeriod"
+                        @bind:after="ApplySelectedPeriod">
 
-                                cumulativePercentage = end;
+                    <option value="Custom">
+                        Custom
+                    </option>
 
-                                colorIndex++;
-                            }
+                    <option value="Last7">
+                        Last 7 days
+                    </option>
 
-                            var pieGradient =
-                                $"conic-gradient({string.Join(", ", gradientParts)})";
-                        }
+                    <option value="Last30">
+                        Last 30 days
+                    </option>
 
-                        <div class="d-flex justify-content-center">
+                    <option value="Last90">
+                        Last 90 days
+                    </option>
 
-                            <div class="expense-pie"
-                                 style="background:@pieGradient;">
-                            </div>
+                    <option value="ThisMonth">
+                        This month
+                    </option>
 
-                        </div>
+                    <option value="LastMonth">
+                        Last month
+                    </option>
 
-                        <div class="mt-4">
+                </select>
 
-                            @{
-                                var legendIndex = 0;
-                            }
+            </div>
 
-                            @foreach (var item in Reports)
-                            {
-                                var percentage =
-                                    total == 0
-                                        ? 0
-                                        : (double)(
-                                            item.TotalAmount / total) * 100;
+        </div>
 
-                                var color =
-                                    pieColors[
-                                        legendIndex %
-                                        pieColors.Length];
 
-                                <div class="d-flex align-items-center mb-2">
+        <!-- CHART TYPE -->
 
-                                    <span class="chart-legend-color"
-                                          style="background:@color;">
-                                    </span>
+        <div class="filter-row chart-type-row">
 
-                                    <span class="ms-2">
-                                        @item.CategoryName
-                                    </span>
+            <div class="filter-label">
+                Chart:
+            </div>
 
-                                    <span class="ms-auto fw-bold">
-                                        @percentage.ToString("0.0")%
-                                    </span>
+            <div class="radio-group chart-radio-group">
 
-                                </div>
+                <label class="report-radio">
 
-                                legendIndex++;
-                            }
+                    <input type="radio"
+                           name="chartType"
+                           checked="@IsPieChart"
+                           @onclick="SetPieChart" />
 
-                        </div>
+                    <span class="radio-circle"></span>
+
+                    <span>
+                        Pie chart
+                    </span>
+
+                </label>
+
+
+                <label class="report-radio">
+
+                    <input type="radio"
+                           name="chartType"
+                           checked="@IsBarChart"
+                           @onclick="SetBarChart" />
+
+                    <span class="radio-circle"></span>
+
+                    <span>
+                        Bar chart
+                    </span>
+
+                </label>
+
+            </div>
+
+        </div>
+
+
+        <!-- SHOW REPORT -->
+
+        <div class="filter-actions">
+
+            <button type="button"
+                    class="show-report-button"
+                    @onclick="GenerateReportAsync"
+                    disabled="@IsGenerating">
+
+                @if (IsGenerating)
+                {
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+
+                    <span>
+                        GENERATING...
+                    </span>
+                }
+                else
+                {
+                    <span>
+                        SHOW REPORT
+                    </span>
+                }
+
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         LOADING
+         ===================================================== -->
+
+    @if (IsGenerating)
+    {
+        <div class="report-loading">
+
+            <div class="report-loader"></div>
+
+            <span>
+                Preparing your financial report...
+            </span>
+
+        </div>
+    }
+
+
+    <!-- =====================================================
+         REPORT RESULTS
+         ===================================================== -->
+
+    @if (!IsGenerating && HasReport)
+    {
+        <section class="report-results">
+
+            <!-- RESULTS HEADER -->
+
+            <div class="results-header">
+
+                <div>
+
+                    <span class="reports-eyebrow">
+                        REPORT RESULTS
+                    </span>
+
+                    <h2>
+                        @GetReportTitle()
+                    </h2>
+
+                    <p>
+                        @Report.FromDate.ToString("dd MMM yyyy")
+                        -
+                        @Report.ToDate.ToString("dd MMM yyyy")
+                    </p>
+
+                </div>
+
+
+                <div class="result-count">
+
+                    <strong>
+                        @Report.TransactionCount
+                    </strong>
+
+                    <span>
+                        transactions
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- =================================================
+                 SUMMARY CARDS
+                 ================================================= -->
+
+            <div class="report-summary-grid">
+
+
+                <!-- INCOME -->
+
+                <div class="report-summary-card income-summary">
+
+                    <div class="summary-icon">
+
+                        <i class="bi bi-arrow-down-left"></i>
+
+                    </div>
+
+                    <div>
+
+                        <span>
+                            Total Income
+                        </span>
+
+                        <strong>
+                            ₹@Report.TotalIncome.ToString("N0")
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <!-- EXPENSE -->
+
+                <div class="report-summary-card expense-summary">
+
+                    <div class="summary-icon">
+
+                        <i class="bi bi-arrow-up-right"></i>
+
+                    </div>
+
+                    <div>
+
+                        <span>
+                            Total Expenses
+                        </span>
+
+                        <strong>
+                            ₹@Report.TotalExpense.ToString("N0")
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <!-- NET -->
+
+                <div class="report-summary-card net-summary">
+
+                    <div class="summary-icon">
+
+                        <i class="bi bi-wallet2"></i>
+
+                    </div>
+
+                    <div>
+
+                        <span>
+                            Net
+                        </span>
+
+                        <strong class="@(Report.NetAmount >= 0 ? "positive" : "negative")">
+
+                            ₹@Report.NetAmount.ToString("N0")
+
+                        </strong>
 
                     </div>
 
@@ -203,104 +422,342 @@ else
 
             </div>
 
-            <!-- BAR CHART -->
 
-            <div class="col-md-6">
+            <!-- =================================================
+                 EMPTY STATE
+                 ================================================= -->
 
-                <div class="card shadow-sm h-100">
+            @if (Report.Categories == null ||
+                 !Report.Categories.Any())
+            {
+                <div class="report-empty">
 
-                    <div class="card-body">
+                    <i class="bi bi-bar-chart-line"></i>
 
-                        <h5 class="card-title mb-4">
-                            Expenses by Category
-                        </h5>
+                    <strong>
+                        No transactions found
+                    </strong>
 
-                        @{
-                            var maxAmount =
-                                Reports.Any()
-                                    ? Reports.Max(x => x.TotalAmount)
-                                    : 0;
-                        }
+                    <span>
+                        Try changing the date range or transaction type.
+                    </span>
 
-                        @foreach (var item in Reports)
-                        {
-                            var width =
-                                maxAmount == 0
-                                    ? 0
-                                    : (double)(
-                                        item.TotalAmount / maxAmount) * 100;
+                </div>
+            }
+            else
+            {
 
-                            <div class="mb-4">
+                <!-- =============================================
+                     CHART CARD
+                     ============================================= -->
 
-                                <div class="d-flex justify-content-between mb-1">
+                <div class="report-chart-card">
 
-                                    <span class="fw-semibold">
-                                        @item.CategoryName
-                                    </span>
+                    <div class="chart-card-header">
 
-                                    <span>
-                                        ₹ @item.TotalAmount.ToString("N2")
-                                    </span>
+                        <div>
 
+                            <span class="reports-eyebrow">
+                                BREAKDOWN
+                            </span>
+
+                            <h3>
+                                @GetChartTitle()
+                            </h3>
+
+                        </div>
+
+
+                        <span class="chart-filter-badge">
+                            @Report.TransactionFilter
+                        </span>
+
+                    </div>
+
+
+                    <!-- =========================================
+                         PIE CHART
+                         ========================================= -->
+
+                    @if (ChartType == "Pie")
+                    {
+                        <div class="pie-report-layout">
+
+                            <div class="pie-chart-wrapper">
+
+                                <div class="report-pie-chart"
+                                     style="@GetPieChartStyle()">
                                 </div>
 
-                                <div class="progress"
-                                     style="height:30px;">
+                            </div>
 
-                                    <div class="progress-bar bg-primary"
-                                         role="progressbar"
-                                         style="width:@width%;">
 
-                                        @item.TotalAmount.ToString("N0")
+                            <div class="pie-legend">
+
+                                @foreach (var category in Report.Categories)
+                                {
+                                    <div class="legend-item">
+
+                                        <span class="legend-color"
+                                              style="background-color:@GetCategoryColor(category.CategoryId)">
+                                        </span>
+
+
+                                        <div class="legend-info">
+
+                                            <strong>
+                                                @category.CategoryName
+                                            </strong>
+
+                                            <span>
+                                                @category.TransactionType
+                                            </span>
+
+                                        </div>
+
+
+                                        <div class="legend-value">
+
+                                            <strong>
+                                                ₹@category.Amount.ToString("N0")
+                                            </strong>
+
+                                            <span>
+                                                @category.Percentage%
+                                            </span>
+
+                                        </div>
+
+                                    </div>
+                                }
+
+                            </div>
+
+                        </div>
+                    }
+                    else
+                    {
+
+                        <!-- =====================================
+                             BAR CHART
+                             ===================================== -->
+
+                        <div class="bar-report">
+
+                            @foreach (var category in Report.Categories)
+                            {
+                                <div class="bar-item">
+
+                                    <div class="bar-item-header">
+
+                                        <div class="bar-category">
+
+                                            <span class="category-dot"
+                                                  style="background-color:@GetCategoryColor(category.CategoryId)">
+                                            </span>
+
+
+                                            <strong>
+                                                @category.CategoryName
+                                            </strong>
+
+
+                                            <small>
+                                                @category.TransactionType
+                                            </small>
+
+                                        </div>
+
+
+                                        <div class="bar-amount">
+
+                                            <strong>
+                                                ₹@category.Amount.ToString("N0")
+                                            </strong>
+
+                                            <span>
+                                                @category.Percentage%
+                                            </span>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="bar-track">
+
+                                        <div class="bar-fill"
+                                             style="width:@GetBarWidth(category.Percentage); background-color:@GetCategoryColor(category.CategoryId);">
+                                        </div>
 
                                     </div>
 
                                 </div>
+                            }
 
-                            </div>
-                        }
+                        </div>
+                    }
+
+                </div>
+
+
+                <!-- =============================================
+                     CATEGORY TABLE
+                     ============================================= -->
+
+                <div class="report-table-card">
+
+                    <div class="chart-card-header">
+
+                        <div>
+
+                            <span class="reports-eyebrow">
+                                DETAILS
+                            </span>
+
+                            <h3>
+                                Category Breakdown
+                            </h3>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="table-responsive">
+
+                        <table class="report-table">
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        Category
+                                    </th>
+
+                                    <th>
+                                        Type
+                                    </th>
+
+                                    <th>
+                                        Amount
+                                    </th>
+
+                                    <th>
+                                        Share
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+                                @foreach (var category in Report.Categories)
+                                {
+                                    <tr>
+
+                                        <td>
+
+                                            <div class="table-category">
+
+                                                <span class="category-dot"
+                                                      style="background-color:@GetCategoryColor(category.CategoryId)">
+                                                </span>
+
+                                                @category.CategoryName
+
+                                            </div>
+
+                                        </td>
+
+
+                                        <td>
+
+                                            <span class="type-badge @(category.TransactionType == "Income" ? "income-badge" : "expense-badge")">
+
+                                                @category.TransactionType
+
+                                            </span>
+
+                                        </td>
+
+
+                                        <td class="amount-cell">
+
+                                            ₹@category.Amount.ToString("N0")
+
+                                        </td>
+
+
+                                        <td>
+
+                                            @category.Percentage%
+
+                                        </td>
+
+                                    </tr>
+                                }
+
+                            </tbody>
+
+                        </table>
 
                     </div>
 
                 </div>
 
-            </div>
+            }
 
-        </div>
-    }
-}
-
-<style>
-
-    .expense-pie {
-        width: 280px;
-        height: 280px;
-        border-radius: 50%;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        </section>
     }
 
-    .chart-legend-color {
-        width: 16px;
-        height: 16px;
-        display: inline-block;
-        border-radius: 3px;
-        flex-shrink: 0;
-    }
+</div>
 
-</style>
 
 @code
 {
-    private IEnumerable<CategoryReport> Reports =
-        new List<CategoryReport>();
+    /*
+     * IMPORTANT:
+     * Report is intentionally NOT nullable.
+     *
+     * We use HasReport to decide whether the report
+     * should be displayed.
+     *
+     * This prevents the previous NullReferenceException.
+     */
 
-    private bool IsLoading = true;
+    private FinancialReport Report = new();
 
-    private bool IsExporting;
+    private bool HasReport = false;
+
+    private bool IsGenerating = false;
 
     private string? ErrorMessage;
 
     private int UserId;
+
+    private DateTime FromDate =
+        DateTime.Today.AddDays(-29);
+
+    private DateTime ToDate =
+        DateTime.Today;
+
+    private string TransactionFilter =
+        "Both";
+
+    private string ChartType =
+        "Bar";
+
+    private string SelectedPeriod =
+        "Last30";
+
+
+    // =========================================================
+    // INITIALIZATION
+    // =========================================================
 
     protected override async Task OnInitializedAsync()
     {
@@ -310,8 +767,11 @@ else
                 await AuthenticationStateProvider
                     .GetAuthenticationStateAsync();
 
+            var user =
+                authenticationState.User;
+
             var claim =
-                authenticationState.User.FindFirst(
+                user.FindFirst(
                     ClaimTypes.NameIdentifier);
 
             if (claim == null ||
@@ -325,60 +785,369 @@ else
                 return;
             }
 
-            Reports =
-                await ReportService
-                    .GetCurrentMonthReportAsync(UserId);
+            ApplySelectedPeriod();
         }
-        catch (Exception)
+        catch
         {
             ErrorMessage =
-                "Unable to load the expense report right now.";
-        }
-        finally
-        {
-            IsLoading = false;
+                "Unable to load the reports page.";
         }
     }
 
-    private async Task ExportCsv()
+
+    // =========================================================
+    // GENERATE REPORT
+    // =========================================================
+
+    private async Task GenerateReportAsync()
     {
+        ErrorMessage = null;
+
+        IsGenerating = true;
+
+        HasReport = false;
+
         try
         {
-            IsExporting = true;
-            ErrorMessage = null;
-
-            var csv =
-                await ReportService
-                    .ExportCurrentMonthReportAsync(UserId);
-
-            if (csv == null || csv.Length == 0)
+            if (FromDate.Date > ToDate.Date)
             {
                 ErrorMessage =
-                    "There is no report data to export.";
+                    "From date cannot be after To date.";
 
                 return;
             }
 
-            var base64 =
-                Convert.ToBase64String(csv);
 
-            var fileName =
-                $"ExpenseReport_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            var generatedReport =
+                await ReportService.GenerateReportAsync(
+                    UserId,
+                    FromDate.Date,
+                    ToDate.Date,
+                    TransactionFilter);
 
-            await JS.InvokeVoidAsync(
-                "FinTrack.downloadFile",
-                fileName,
-                "text/csv;charset=utf-8",
-                base64);
+
+            if (generatedReport == null)
+            {
+                ErrorMessage =
+                    "No report could be generated.";
+
+                return;
+            }
+
+
+            Report =
+                generatedReport;
+
+            HasReport = true;
         }
         catch (Exception ex)
         {
+            HasReport = false;
+
             ErrorMessage =
-                $"Unable to export the report: {ex.Message}";
+                ex.Message;
         }
         finally
         {
-            IsExporting = false;
+            IsGenerating = false;
         }
+    }
+
+
+    // =========================================================
+    // PERIOD
+    // =========================================================
+
+    private void ApplySelectedPeriod()
+    {
+        HasReport = false;
+
+        ErrorMessage = null;
+
+        var today =
+            DateTime.Today;
+
+
+        switch (SelectedPeriod)
+        {
+            case "Last7":
+
+                FromDate =
+                    today.AddDays(-6);
+
+                ToDate =
+                    today;
+
+                break;
+
+
+            case "Last30":
+
+                FromDate =
+                    today.AddDays(-29);
+
+                ToDate =
+                    today;
+
+                break;
+
+
+            case "Last90":
+
+                FromDate =
+                    today.AddDays(-89);
+
+                ToDate =
+                    today;
+
+                break;
+
+
+            case "ThisMonth":
+
+                FromDate =
+                    new DateTime(
+                        today.Year,
+                        today.Month,
+                        1);
+
+                ToDate =
+                    today;
+
+                break;
+
+
+            case "LastMonth":
+
+                var firstOfCurrentMonth =
+                    new DateTime(
+                        today.Year,
+                        today.Month,
+                        1);
+
+
+                var lastMonth =
+                    firstOfCurrentMonth
+                        .AddMonths(-1);
+
+
+                FromDate =
+                    lastMonth;
+
+                ToDate =
+                    firstOfCurrentMonth
+                        .AddDays(-1);
+
+                break;
+        }
+    }
+
+
+    // =========================================================
+    // TRANSACTION FILTER
+    // =========================================================
+
+    private bool IsExpenseFilter =>
+        TransactionFilter == "Expense";
+
+
+    private bool IsIncomeFilter =>
+        TransactionFilter == "Income";
+
+
+    private bool IsBothFilter =>
+        TransactionFilter == "Both";
+
+
+    private void SetExpenseFilter()
+    {
+        TransactionFilter =
+            "Expense";
+
+        HasReport = false;
+
+        ErrorMessage = null;
+    }
+
+
+    private void SetIncomeFilter()
+    {
+        TransactionFilter =
+            "Income";
+
+        HasReport = false;
+
+        ErrorMessage = null;
+    }
+
+
+    private void SetBothFilter()
+    {
+        TransactionFilter =
+            "Both";
+
+        HasReport = false;
+
+        ErrorMessage = null;
+    }
+
+
+    // =========================================================
+    // CHART FILTER
+    // =========================================================
+
+    private bool IsPieChart =>
+        ChartType == "Pie";
+
+
+    private bool IsBarChart =>
+        ChartType == "Bar";
+
+
+    private void SetPieChart()
+    {
+        ChartType =
+            "Pie";
+    }
+
+
+    private void SetBarChart()
+    {
+        ChartType =
+            "Bar";
+    }
+
+
+    // =========================================================
+    // TITLES
+    // =========================================================
+
+    private string GetReportTitle()
+    {
+        return TransactionFilter switch
+        {
+            "Income" =>
+                "Income by Category",
+
+            "Expense" =>
+                "Expenses by Category",
+
+            _ =>
+                "Income & Expenses by Category"
+        };
+    }
+
+
+    private string GetChartTitle()
+    {
+        return TransactionFilter switch
+        {
+            "Income" =>
+                "Income by Category",
+
+            "Expense" =>
+                "Expenses by Category",
+
+            _ =>
+                "Income & Expenses by Category"
+        };
+    }
+
+
+    // =========================================================
+    // BAR CHART
+    // =========================================================
+
+    private string GetBarWidth(
+        decimal percentage)
+    {
+        var width =
+            Math.Min(
+                Math.Max(
+                    percentage,
+                    0),
+                100);
+
+        return
+            $"{width:0.##}%";
+    }
+
+
+    // =========================================================
+    // PIE CHART
+    // =========================================================
+
+    private string GetPieChartStyle()
+    {
+        if (Report.Categories == null ||
+            !Report.Categories.Any())
+        {
+            return
+                "background:#282d36;";
+        }
+
+
+        var segments =
+            new List<string>();
+
+        decimal current =
+            0;
+
+
+        foreach (var category
+                 in Report.Categories)
+        {
+            var start =
+                current;
+
+
+            current +=
+                category.Percentage;
+
+
+            var color =
+                GetCategoryColor(
+                    category.CategoryId);
+
+
+            segments.Add(
+                $"{color} {start:0.##}% {current:0.##}%");
+        }
+
+
+        return
+            $"background:conic-gradient({string.Join(", ", segments)});";
+    }
+
+
+    // =========================================================
+    // CATEGORY COLORS
+    // =========================================================
+
+    private string GetCategoryColor(
+        int categoryId)
+    {
+        var colors =
+            new[]
+            {
+                "#3b82f6",
+                "#22c55e",
+                "#ef4444",
+                "#a855f7",
+                "#f59e0b",
+                "#06b6d4",
+                "#ec4899",
+                "#84cc16",
+                "#6366f1",
+                "#f97316",
+                "#14b8a6",
+                "#eab308"
+            };
+
+
+        return
+            colors[
+                Math.Abs(categoryId)
+                % colors.Length];
     }
 }

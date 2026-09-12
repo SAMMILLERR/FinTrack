@@ -276,3 +276,117 @@ body.dark-mode .border-top {
 body.dark-mode .border-bottom {
     border-color: #444444 !important;
 }
+/* =========================================================
+   FINTRACK - PERMANENT DARK THEME
+   ========================================================= */
+
+html,
+body {
+    background-color: #111315 !important;
+    color: #e8eaf0 !important;
+}
+
+body {
+    color-scheme: dark;
+}
+
+main {
+    background-color: #111315;
+    color: #e8eaf0;
+}
+
+/* Bootstrap */
+.card {
+    background-color: #1c1f23;
+    color: #e8eaf0;
+    border-color: #30343b;
+}
+
+.table {
+    color: #e8eaf0;
+}
+
+.form-control,
+.form-select {
+    background-color: #1c1f23;
+    color: #e8eaf0;
+    border-color: #3a3f47;
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: #1c1f23;
+    color: #ffffff;
+    border-color: #4f8ef7;
+}
+
+.form-control::placeholder {
+    color: #8b929d;
+}
+
+/* Text */
+.text-muted {
+    color: #8b929d !important;
+}
+
+/* Dropdowns */
+.dropdown-menu {
+    background-color: #1c1f23;
+    border-color: #30343b;
+}
+
+.dropdown-item {
+    color: #e8eaf0;
+}
+
+.dropdown-item:hover {
+    background-color: #292d33;
+    color: #ffffff;
+}
+
+/* Tables */
+.table tbody td,
+.table tbody th,
+.table tbody tr {
+    color: #ffffff !important;
+    background-color: #1c1f23 !important;
+    border-color: #3a3f47 !important;
+}
+
+.table thead th {
+    background-color: #24282e !important;
+    color: #ffffff !important;
+    border-color: #3a3f47 !important;
+}
+
+/* Modals */
+.modal-content {
+    background-color: #1c1f23;
+    color: #e8eaf0;
+    border-color: #30343b;
+}
+
+.modal-header,
+.modal-footer {
+    border-color: #30343b;
+}
+
+/* Alerts */
+.alert {
+    border-color: #3a3f47;
+}
+
+/* Links */
+a {
+    color: #4f8ef7;
+}
+
+a:hover {
+    color: #75a9ff;
+}
+
+/* Dashboard */
+.fin-dashboard {
+    background: #111315;
+    color: #e8eaf0;
+}

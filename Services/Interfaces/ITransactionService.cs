@@ -3,7 +3,11 @@ using FinTrack.Models;
 namespace FinTrack.Services.Interfaces;
 
 public interface ITransactionService
-{
+{Task<Budget?> GetBudgetForTransactionAsync(
+    Transaction transaction);
+
+Task<decimal> GetCurrentCategorySpendingAsync(
+    Transaction transaction);
     Task<TransactionPageResult> GetTransactionsAsync(
         int? userId,
         DateTime? fromDate,
@@ -43,4 +47,5 @@ public class TransactionPageResult
     public int CurrentPage { get; set; }
 
     public int TotalPages { get; set; }
+    
 }

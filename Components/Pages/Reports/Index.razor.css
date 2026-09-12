@@ -1,0 +1,784 @@
+.reports-page {
+    min-height: calc(100vh - 70px);
+    padding: 32px;
+    background: #0b0d11;
+    color: #f1f5f9;
+}
+
+.reports-header {
+    max-width: 1200px;
+    margin: 0 auto 28px;
+}
+
+.reports-eyebrow {
+    display: block;
+    margin-bottom: 6px;
+    color: #60a5fa;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+}
+
+.reports-header h1 {
+    margin: 0;
+    font-size: 32px;
+    font-weight: 700;
+}
+
+.reports-header p {
+    margin: 8px 0 0;
+    color: #8d96a5;
+}
+
+
+/* =========================================================
+   FILTER PANEL
+   ========================================================= */
+
+.report-filter-card {
+    max-width: 1200px;
+    margin: 0 auto 28px;
+    padding: 28px 30px;
+    background: #292929;
+    border: 1px solid #383838;
+    border-radius: 20px;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, .25);
+}
+
+.filter-row {
+    display: flex;
+    align-items: center;
+    gap: 35px;
+    margin-bottom: 26px;
+}
+
+.filter-type-row {
+    margin-bottom: 30px;
+}
+
+.filter-label {
+    min-width: 275px;
+    color: #f5f5f5;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.radio-group {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+}
+
+.report-radio {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #f5f5f5;
+    font-size: 16px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.report-radio input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.radio-circle {
+    width: 21px;
+    height: 21px;
+    border: 2px solid #d1d5db;
+    border-radius: 50%;
+    background: #eeeeee;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.report-radio input:checked + .radio-circle {
+    border-color: #1683ff;
+    background: #1683ff;
+    box-shadow: inset 0 0 0 5px #1683ff;
+}
+
+.report-radio input:checked + .radio-circle::after {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: white;
+}
+
+
+/* =========================================================
+   DATE FILTERS
+   ========================================================= */
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filter-field label {
+    color: #f1f1f1;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.report-input {
+    width: 100%;
+    min-height: 50px;
+    padding: 10px 15px;
+    border: 1px solid #9ca3af;
+    border-radius: 10px;
+    background: #292929;
+    color: #f5f5f5;
+    font-size: 16px;
+    outline: none;
+}
+
+.report-input:focus {
+    border-color: #2196f3;
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, .15);
+}
+
+.report-input:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+select.report-input {
+    appearance: auto;
+}
+
+
+/* =========================================================
+   ACCOUNT
+   ========================================================= */
+
+.account-row {
+    align-items: flex-start;
+}
+
+.account-control {
+    width: 510px;
+}
+
+.account-control small {
+    display: block;
+    margin-top: 7px;
+    color: #858585;
+    font-size: 11px;
+}
+
+
+/* =========================================================
+   CHECKBOX
+   ========================================================= */
+
+.checkbox-row {
+    margin-top: 8px;
+}
+
+.checkbox-option {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    color: #eeeeee;
+    font-size: 16px;
+}
+
+.checkbox-option input {
+    width: 21px;
+    height: 21px;
+    accent-color: #1683ff;
+}
+
+.disabled-option {
+    opacity: .65;
+}
+
+
+/* =========================================================
+   CHART TYPE
+   ========================================================= */
+
+.chart-type-row {
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+.chart-radio-group {
+    gap: 30px;
+}
+
+
+/* =========================================================
+   SHOW REPORT
+   ========================================================= */
+
+.filter-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 18px;
+}
+
+.show-report-button {
+    min-width: 172px;
+    min-height: 50px;
+    padding: 0 25px;
+    border: none;
+    border-radius: 28px;
+    background: #2196f3;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: .2s ease;
+}
+
+.show-report-button:hover {
+    background: #1683df;
+    transform: translateY(-1px);
+}
+
+.show-report-button:disabled {
+    opacity: .65;
+    cursor: wait;
+}
+
+
+/* =========================================================
+   ERROR
+   ========================================================= */
+
+.report-error {
+    max-width: 1200px;
+    margin: 0 auto 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    border: 1px solid #7f1d1d;
+    border-radius: 12px;
+    background: #2a1111;
+    color: #fecaca;
+}
+
+.report-error i {
+    font-size: 22px;
+}
+
+.report-error div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+
+/* =========================================================
+   LOADING
+   ========================================================= */
+
+.report-loading {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 50px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    color: #9ca3af;
+}
+
+.report-loader {
+    width: 38px;
+    height: 38px;
+    border: 3px solid #30343b;
+    border-top-color: #2196f3;
+    border-radius: 50%;
+    animation: report-spin .8s linear infinite;
+}
+
+@keyframes report-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+
+/* =========================================================
+   RESULTS
+   ========================================================= */
+
+.report-results {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 20px;
+}
+
+.results-header h2 {
+    margin: 0;
+    font-size: 25px;
+}
+
+.results-header p {
+    margin: 7px 0 0;
+    color: #8d96a5;
+}
+
+.result-count {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    color: #8d96a5;
+}
+
+.result-count strong {
+    color: #f5f5f5;
+    font-size: 25px;
+}
+
+
+/* =========================================================
+   SUMMARY
+   ========================================================= */
+
+.report-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.report-summary-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    background: #171a20;
+    border: 1px solid #272c35;
+    border-radius: 15px;
+}
+
+.report-summary-card .summary-icon {
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 11px;
+    font-size: 19px;
+}
+
+.income-summary .summary-icon {
+    background: rgba(34, 197, 94, .12);
+    color: #4ade80;
+}
+
+.expense-summary .summary-icon {
+    background: rgba(239, 68, 68, .12);
+    color: #f87171;
+}
+
+.net-summary .summary-icon {
+    background: rgba(59, 130, 246, .12);
+    color: #60a5fa;
+}
+
+.report-summary-card div:last-child {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.report-summary-card span {
+    color: #8d96a5;
+    font-size: 13px;
+}
+
+.report-summary-card strong {
+    color: #f5f5f5;
+    font-size: 21px;
+}
+
+.report-summary-card strong.positive {
+    color: #4ade80;
+}
+
+.report-summary-card strong.negative {
+    color: #f87171;
+}
+
+
+/* =========================================================
+   CHART CARD
+   ========================================================= */
+
+.report-chart-card,
+.report-table-card {
+    margin-bottom: 18px;
+    padding: 24px;
+    background: #171a20;
+    border: 1px solid #272c35;
+    border-radius: 16px;
+}
+
+.chart-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.chart-card-header h3 {
+    margin: 0;
+    font-size: 19px;
+}
+
+.chart-filter-badge {
+    padding: 7px 12px;
+    border: 1px solid #303743;
+    border-radius: 20px;
+    color: #aeb7c5;
+    background: #20242b;
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   PIE
+   ========================================================= */
+
+.pie-report-layout {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    align-items: center;
+    gap: 50px;
+}
+
+.pie-chart-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.report-pie-chart {
+    width: 290px;
+    height: 290px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);
+}
+
+.pie-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+}
+
+.legend-item {
+    display: grid;
+    grid-template-columns: 12px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #252a32;
+}
+
+.legend-color {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.legend-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.legend-info strong {
+    color: #f3f4f6;
+}
+
+.legend-info span {
+    color: #737d8c;
+    font-size: 11px;
+}
+
+.legend-value {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+}
+
+.legend-value strong {
+    color: #f3f4f6;
+}
+
+.legend-value span {
+    color: #737d8c;
+    font-size: 11px;
+}
+
+
+/* =========================================================
+   BAR
+   ========================================================= */
+
+.bar-report {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.bar-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.bar-category {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.bar-category strong {
+    color: #e5e7eb;
+}
+
+.bar-category small {
+    color: #737d8c;
+    font-size: 11px;
+}
+
+.category-dot {
+    width: 9px;
+    height: 9px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+}
+
+.bar-amount {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.bar-amount strong {
+    color: #f3f4f6;
+}
+
+.bar-amount span {
+    color: #737d8c;
+    font-size: 12px;
+}
+
+.bar-track {
+    height: 9px;
+    overflow: hidden;
+    border-radius: 20px;
+    background: #282d36;
+}
+
+.bar-fill {
+    height: 100%;
+    min-width: 3px;
+    border-radius: inherit;
+    transition: width .4s ease;
+}
+
+
+/* =========================================================
+   TABLE
+   ========================================================= */
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.report-table th {
+    padding: 13px 12px;
+    border-bottom: 1px solid #303641;
+    color: #737d8c;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .7px;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+.report-table td {
+    padding: 15px 12px;
+    border-bottom: 1px solid #252a32;
+    color: #d9dde5;
+}
+
+.table-category {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.amount-cell {
+    font-weight: 700;
+}
+
+.type-badge {
+    display: inline-flex;
+    padding: 5px 9px;
+    border-radius: 15px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.income-badge {
+    background: rgba(34, 197, 94, .12);
+    color: #4ade80;
+}
+
+.expense-badge {
+    background: rgba(239, 68, 68, .12);
+    color: #f87171;
+}
+
+
+/* =========================================================
+   EMPTY
+   ========================================================= */
+
+.report-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 65px 20px;
+    background: #171a20;
+    border: 1px solid #272c35;
+    border-radius: 16px;
+    text-align: center;
+}
+
+.report-empty i {
+    margin-bottom: 8px;
+    color: #4b5563;
+    font-size: 42px;
+}
+
+.report-empty strong {
+    color: #e5e7eb;
+    font-size: 18px;
+}
+
+.report-empty span {
+    color: #737d8c;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+    .reports-page {
+        padding: 20px;
+    }
+
+    .filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-row {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .filter-label {
+        min-width: auto;
+    }
+
+    .account-control {
+        width: 100%;
+    }
+
+    .radio-group {
+        flex-wrap: wrap;
+    }
+
+    .report-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pie-report-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .results-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .result-count {
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 600px) {
+
+    .reports-page {
+        padding: 14px;
+    }
+
+    .report-filter-card {
+        padding: 20px;
+    }
+
+    .filter-actions {
+        justify-content: stretch;
+    }
+
+    .show-report-button {
+        width: 100%;
+    }
+
+    .radio-group {
+        gap: 18px;
+    }
+
+    .report-chart-card,
+    .report-table-card {
+        padding: 17px;
+    }
+
+    .report-pie-chart {
+        width: 230px;
+        height: 230px;
+    }
+}

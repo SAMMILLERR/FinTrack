@@ -8,13 +8,16 @@ public class TransactionService : ITransactionService
 {
     private readonly ITransactionRepository _transactionRepository;
     private readonly ICategoryRepository _categoryRepository;
+    private readonly IBudgetRepository _budgetRepository;
 
     public TransactionService(
         ITransactionRepository transactionRepository,
-        ICategoryRepository categoryRepository)
+        ICategoryRepository categoryRepository,
+        IBudgetRepository budgetRepository)
     {
         _transactionRepository = transactionRepository;
         _categoryRepository = categoryRepository;
+        _budgetRepository = budgetRepository;
     }
 
     public async Task<IEnumerable<Category>> GetCategoriesAsync()
@@ -56,6 +59,35 @@ public class TransactionService : ITransactionService
         await _transactionRepository.DeleteAsync(
             transactionId,
             userId);
+    }
+
+    public async Task<Budget?> GetBudgetForTransactionAsync(
+        Transaction transaction)
+    {
+        if (!transaction.TransactionType.Equals(
+                "Expense",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var budgets =
+            await _budgetRepository.GetByUserAsync(
+                transaction.UserId);
+
+        return budgets.FirstOrDefault(b =>
+            b.CategoryId == transaction.CategoryId &&
+            b.BudgetMonth == transaction.TransactionDate.Month &&
+            b.BudgetYear == transaction.TransactionDate.Year);
+    }
+
+    public async Task<decimal> GetCurrentCategorySpendingAsync(
+        Transaction transaction)
+    {
+        var budget =
+            await GetBudgetForTransactionAsync(transaction);
+
+        return budget?.SpentAmount ?? 0;
     }
 
     public async Task<TransactionPageResult> GetTransactionsAsync(

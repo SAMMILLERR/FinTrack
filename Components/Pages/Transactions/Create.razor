@@ -118,6 +118,116 @@ else
 
         </div>
 
+        @if (!string.IsNullOrEmpty(BudgetWarning))
+        {
+            <div class="alert alert-warning">
+
+                <div class="d-flex">
+
+                    <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+
+                    <div>
+
+                        <strong>Budget warning</strong>
+
+                        <div class="mt-1">
+                            @BudgetWarning
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+        }
+
+        @if (ShowBudgetConfirmation)
+        {
+            <div class="alert alert-danger">
+
+                <div class="d-flex">
+
+                    <i class="bi bi-shield-exclamation fs-4 me-3"></i>
+
+                    <div class="w-100">
+
+                        <h5 class="alert-heading">
+                            Budget limit exceeded
+                        </h5>
+
+                        <p>
+                            This expense will cause your
+                            <strong>@BudgetCategoryName</strong>
+                            budget to exceed its monthly limit.
+                        </p>
+
+                        <div class="row mb-3">
+
+                            <div class="col-md-6">
+                                <strong>Monthly budget:</strong>
+                                ₹@BudgetLimit.ToString("N2")
+                            </div>
+
+                            <div class="col-md-6">
+                                <strong>Already spent:</strong>
+                                ₹@CurrentSpent.ToString("N2")
+                            </div>
+
+                            <div class="col-md-6 mt-2">
+                                <strong>This expense:</strong>
+                                ₹@Transaction.Amount.ToString("N2")
+                            </div>
+
+                            <div class="col-md-6 mt-2">
+                                <strong>Projected spending:</strong>
+                                ₹@ProjectedSpent.ToString("N2")
+                            </div>
+
+                        </div>
+
+                        <div class="alert alert-light border">
+
+                            <strong>FinTrack disclaimer</strong>
+
+                            <p class="mb-0 mt-1">
+                                FinTrack recommends staying within your
+                                configured budget. Proceeding will cause
+                                this category to exceed its monthly limit.
+                                You are choosing to override this
+                                budgeting safeguard.
+                            </p>
+
+                        </div>
+
+                        <div class="d-flex gap-2">
+
+                            <button type="button"
+                                    class="btn btn-secondary"
+                                    @onclick="CancelBudgetOverride">
+
+                                Cancel
+
+                            </button>
+
+                            <button type="button"
+                                    class="btn btn-danger"
+                                    @onclick="ProceedDespiteBudget">
+
+                                <i class="bi bi-exclamation-triangle"></i>
+
+                                Proceed Anyway
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+        }
+
         @if (!string.IsNullOrEmpty(ErrorMessage))
         {
             <div class="alert alert-danger">
@@ -125,13 +235,16 @@ else
             </div>
         }
 
-        <button type="submit"
-                class="btn btn-primary"
-                disabled="@IsSaving">
+        @if (!ShowBudgetConfirmation)
+        {
+            <button type="submit"
+                    class="btn btn-primary"
+                    disabled="@IsSaving">
 
-            @(IsSaving ? "Saving..." : "Save")
+                @(IsSaving ? "Saving..." : "Save")
 
-        </button>
+            </button>
+        }
 
         <button type="button"
                 class="btn btn-secondary ms-2"
@@ -158,6 +271,18 @@ else
 
     private string? ErrorMessage;
 
+    private string? BudgetWarning;
+
+    private bool ShowBudgetConfirmation;
+
+    private decimal BudgetLimit;
+
+    private decimal CurrentSpent;
+
+    private decimal ProjectedSpent;
+
+    private string BudgetCategoryName = "";
+
     protected override async Task OnInitializedAsync()
     {
         Transaction.TransactionDate = DateTime.Today;
@@ -183,10 +308,9 @@ else
         Type = type;
 
         Transaction.TransactionType = Type;
-
         Transaction.CategoryId = 0;
 
-        ErrorMessage = null;
+        ClearBudgetMessages();
 
         await LoadCategories();
     }
@@ -205,14 +329,15 @@ else
         try
         {
             IsSaving = true;
+
             ErrorMessage = null;
+            BudgetWarning = null;
 
             var authenticationState =
                 await AuthenticationStateProvider
                     .GetAuthenticationStateAsync();
 
-            var user =
-                authenticationState.User;
+            var user = authenticationState.User;
 
             var claim =
                 user.FindFirst(
@@ -232,6 +357,53 @@ else
             Transaction.UserId = userId;
             Transaction.TransactionType = Type;
 
+            if (Type.Equals(
+                    "Expense",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                var budget =
+                    await TransactionService
+                        .GetBudgetForTransactionAsync(
+                            Transaction);
+
+                if (budget != null)
+                {
+                    CurrentSpent = budget.SpentAmount;
+
+                    ProjectedSpent =
+                        CurrentSpent + Transaction.Amount;
+
+                    BudgetLimit = budget.LimitAmount;
+
+                    var category =
+                        Categories.FirstOrDefault(
+                            c => c.CategoryId ==
+                                 Transaction.CategoryId);
+
+                    BudgetCategoryName =
+                        category?.CategoryName ??
+                        budget.CategoryName;
+
+                    if (ProjectedSpent > BudgetLimit)
+                    {
+                        ShowBudgetConfirmation = true;
+
+                        return;
+                    }
+
+                    if (ProjectedSpent >= BudgetLimit * 0.80m)
+                    {
+                        var remaining =
+                            BudgetLimit - ProjectedSpent;
+
+                        BudgetWarning =
+                            $"This expense will leave only " +
+                            $"₹{remaining:N2} remaining in your " +
+                            $"monthly {BudgetCategoryName} budget.";
+                    }
+                }
+            }
+
             await TransactionService
                 .AddTransactionAsync(Transaction);
 
@@ -246,6 +418,43 @@ else
         {
             IsSaving = false;
         }
+    }
+
+    private async Task ProceedDespiteBudget()
+    {
+        try
+        {
+            IsSaving = true;
+            ErrorMessage = null;
+
+            await TransactionService
+                .AddTransactionAsync(Transaction);
+
+            Navigation.NavigateTo("/transactions");
+        }
+        catch (Exception)
+        {
+            ErrorMessage =
+                "Unable to save the transaction right now.";
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private void CancelBudgetOverride()
+    {
+        ShowBudgetConfirmation = false;
+
+        ErrorMessage = null;
+    }
+
+    private void ClearBudgetMessages()
+    {
+        ErrorMessage = null;
+        BudgetWarning = null;
+        ShowBudgetConfirmation = false;
     }
 
     private void Cancel()

@@ -1,5 +1,7 @@
 @page "/transactions"
-@attribute [Authorize]
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
 @rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
 
 @using System.Security.Claims
@@ -9,182 +11,243 @@
 @inject ITransactionService TransactionService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<PageTitle>Transactions</PageTitle>
+<PageTitle>Transactions | FinTrack</PageTitle>
 
-<h2 class="mb-4">
-    @(IsAdmin ? "All Transactions" : "Transactions")
-</h2>
 
 @if (IsLoading)
 {
-    <div class="alert alert-info">
-        Loading transactions...
+    <div class="transactions-loading">
+
+        <div class="transaction-loader"></div>
+
+        <span>
+            Loading transactions...
+        </span>
+
     </div>
 }
-else if (!string.IsNullOrEmpty(ErrorMessage))
+else if (!string.IsNullOrWhiteSpace(ErrorMessage))
 {
-    <div class="alert alert-danger">
-        @ErrorMessage
+    <div class="transactions-error">
+
+        <i class="bi bi-exclamation-triangle"></i>
+
+        <div>
+
+            <strong>
+                Transactions unavailable
+            </strong>
+
+            <span>
+                @ErrorMessage
+            </span>
+
+        </div>
+
     </div>
 }
 else
 {
-    @if (!IsAdmin)
-    {
-        <div class="mb-4">
+    <div class="transactions-page">
 
-            <a href="/transactions/create?type=Income"
-               class="btn btn-success me-2">
-                + Income
-            </a>
 
-            <a href="/transactions/create?type=Expense"
-               class="btn btn-danger">
-                + Expense
-            </a>
+        <!-- =====================================================
+             HEADER
+             ===================================================== -->
+
+        <div class="transactions-header">
+
+            <div>
+
+                <span class="transactions-eyebrow">
+                    PERSONAL FINANCE
+                </span>
+
+                <h1>
+                    Transactions
+                </h1>
+
+                <p>
+                    Track your income and spending activity.
+                </p>
+
+            </div>
+
+
+            @if (!IsAdmin)
+            {
+                <div class="transaction-actions">
+
+                    <a href="/transactions/create?type=Income"
+                       class="transaction-income-button">
+
+                        <i class="bi bi-plus-lg"></i>
+
+                        Income
+
+                    </a>
+
+
+                    <a href="/transactions/create?type=Expense"
+                       class="transaction-expense-button">
+
+                        <i class="bi bi-plus-lg"></i>
+
+                        Expense
+
+                    </a>
+
+                </div>
+            }
 
         </div>
-    }
 
-    <EditForm Model="this"
-              OnValidSubmit="Search"
-              FormName="transactionSearchForm">
 
-        <div class="row g-3 mb-4">
+        <!-- =====================================================
+             MONTH NAVIGATION
+             ===================================================== -->
 
-            <div class="col-md-3">
+        <div class="calendar-toolbar">
 
-                <label class="form-label">
-                    From Date
-                </label>
+            <div class="calendar-month-navigation">
 
-                <InputDate @bind-Value="FromDate"
-                           class="form-control" />
+                <button type="button"
+                        class="month-nav-button"
+                        @onclick="PreviousMonth">
 
-            </div>
+                    <i class="bi bi-chevron-left"></i>
 
-            <div class="col-md-3">
+                </button>
 
-                <label class="form-label">
-                    To Date
-                </label>
 
-                <InputDate @bind-Value="ToDate"
-                           class="form-control" />
+                <div class="calendar-month-title">
 
-            </div>
+                    <strong>
+                        @CurrentMonth.ToString("MMMM yyyy")
+                    </strong>
 
-            <div class="col-md-3">
+                    <span>
+                        @MonthTransactionCount transaction@(MonthTransactionCount == 1 ? "" : "s")
+                    </span>
 
-                <label class="form-label">
-                    Category
-                </label>
+                </div>
 
-                <InputSelect @bind-Value="CategoryId"
-                             class="form-select">
 
-                    <option value="">All</option>
+                <button type="button"
+                        class="month-nav-button"
+                        @onclick="NextMonth">
 
-                    @foreach (var category in Categories)
-                    {
-                        <option value="@category.CategoryId">
-                            @category.CategoryName
-                        </option>
-                    }
+                    <i class="bi bi-chevron-right"></i>
 
-                </InputSelect>
-
-            </div>
-
-            <div class="col-md-2">
-
-                <label class="form-label">
-                    Type
-                </label>
-
-                <InputSelect @bind-Value="Type"
-                             class="form-select">
-
-                    <option value="">All</option>
-
-                    <option value="Income">
-                        Income
-                    </option>
-
-                    <option value="Expense">
-                        Expense
-                    </option>
-
-                </InputSelect>
-
-            </div>
-
-            <div class="col-md-1 d-flex align-items-end">
-
-                <button type="submit"
-                        class="btn btn-primary w-100">
-                    Search
                 </button>
 
             </div>
 
+
+            <button type="button"
+                    class="today-button"
+                    @onclick="GoToToday">
+
+                Today
+
+            </button>
+
         </div>
 
-    </EditForm>
 
-    @if (!IsAdmin)
-    {
-        <div class="row mb-5">
+        <!-- =====================================================
+             MONTH SUMMARY
+             ===================================================== -->
 
-            <div class="col-md-4">
+        <div class="transaction-summary-grid">
 
-                <div class="card text-bg-success shadow">
 
-                    <div class="card-body text-center">
+            <div class="transaction-summary-card">
 
-                        <h6>Total Income</h6>
+                <div class="transaction-summary-icon income-icon">
 
-                        <h2>
-                            ₹ @Summary.TotalIncome
-                        </h2>
+                    <i class="bi bi-arrow-down-left"></i>
 
-                    </div>
+                </div>
+
+                <div>
+
+                    <span>
+                        Income
+                    </span>
+
+                    <strong class="income-text">
+                        +₹@MonthIncome.ToString("N0")
+                    </strong>
 
                 </div>
 
             </div>
 
-            <div class="col-md-4">
 
-                <div class="card text-bg-danger shadow">
+            <div class="transaction-summary-card">
 
-                    <div class="card-body text-center">
+                <div class="transaction-summary-icon expense-icon">
 
-                        <h6>Total Expense</h6>
+                    <i class="bi bi-arrow-up-right"></i>
 
-                        <h2>
-                            ₹ @Summary.TotalExpense
-                        </h2>
+                </div>
 
-                    </div>
+                <div>
+
+                    <span>
+                        Expenses
+                    </span>
+
+                    <strong class="expense-text">
+                        -₹@MonthExpense.ToString("N0")
+                    </strong>
 
                 </div>
 
             </div>
 
-            <div class="col-md-4">
 
-                <div class="card text-bg-primary shadow">
+            <div class="transaction-summary-card">
 
-                    <div class="card-body text-center">
+                <div class="transaction-summary-icon balance-icon">
 
-                        <h6>Balance</h6>
+                    <i class="bi bi-wallet2"></i>
 
-                        <h2>
-                            ₹ @Summary.Balance
-                        </h2>
+                </div>
 
-                    </div>
+                <div>
+
+                    <span>
+                        Net
+                    </span>
+
+                    <strong class="@(MonthNet >= 0 ? "income-text" : "expense-text")">
+                        @(MonthNet >= 0 ? "+" : "-")₹@Math.Abs(MonthNet).ToString("N0")
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <div class="transaction-summary-card">
+
+                <div class="transaction-summary-icon count-icon">
+
+                    <i class="bi bi-receipt"></i>
+
+                </div>
+
+                <div>
+
+                    <span>
+                        Transactions
+                    </span>
+
+                    <strong>
+                        @MonthTransactionCount
+                    </strong>
 
                 </div>
 
@@ -192,194 +255,634 @@ else
 
         </div>
 
-        <hr />
-    }
 
-    <h3 class="mb-3">
-        Transaction List
-    </h3>
+        <!-- =====================================================
+             FILTERS
+             ===================================================== -->
 
-    @if (!Transactions.Any())
-    {
-        <div class="alert alert-secondary">
-            No transactions found for the selected filters.
-        </div>
-    }
-    else
-    {
-        <div class="table-responsive">
+        <div class="transaction-filter-card">
 
-            <table class="table table-bordered table-hover">
+            <div class="filter-header">
 
-                <thead class="table-dark">
+                <div>
 
-                    <tr>
+                    <span class="transactions-eyebrow">
+                        FILTERS
+                    </span>
 
-                        <th>Date</th>
+                    <strong>
+                        Find transactions
+                    </strong>
 
-                        @if (IsAdmin)
+                </div>
+
+
+                @if (HasActiveFilters)
+                {
+                    <button type="button"
+                            class="clear-filter-button"
+                            @onclick="ClearFilters">
+
+                        Clear filters
+
+                    </button>
+                }
+
+            </div>
+
+
+            <div class="transaction-filter-grid">
+
+
+                <!-- CATEGORY -->
+
+                <div class="transaction-filter-field">
+
+                    <label>
+                        Category
+                    </label>
+
+                    <select class="transaction-filter-input"
+                            @bind="CategoryId">
+
+                        <option value="">
+                            All categories
+                        </option>
+
+                        @foreach (var category in Categories)
                         {
-                            <th>User</th>
+                            <option value="@category.CategoryId">
+                                @category.CategoryName
+                            </option>
                         }
 
-                        <th>Category</th>
+                    </select>
 
-                        <th>Type</th>
+                </div>
 
-                        <th>Amount</th>
 
-                        <th>Description</th>
+                <!-- TYPE -->
 
-                        @if (!IsAdmin)
-                        {
-                            <th>Actions</th>
-                        }
+                <div class="transaction-filter-field">
 
-                    </tr>
+                    <label>
+                        Type
+                    </label>
 
-                </thead>
+                    <select class="transaction-filter-input"
+                            @bind="Type">
 
-                <tbody>
+                        <option value="">
+                            All transactions
+                        </option>
 
-                    @foreach (var item in Transactions)
+                        <option value="Income">
+                            Income
+                        </option>
+
+                        <option value="Expense">
+                            Expense
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- SEARCH -->
+
+                <div class="transaction-filter-field search-field">
+
+                    <label>
+                        Search
+                    </label>
+
+                    <input type="text"
+                           class="transaction-filter-input"
+                           placeholder="Search description..."
+                           @bind="SearchText"
+                           @bind:event="oninput" />
+
+                </div>
+
+
+                <div class="transaction-filter-action">
+
+                    <button type="button"
+                            class="filter-apply-button"
+                            @onclick="ApplyFilters">
+
+                        <i class="bi bi-search"></i>
+
+                        Filter
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             CALENDAR
+             ===================================================== -->
+
+        <div class="transaction-calendar-card">
+
+
+            <!-- WEEK DAYS -->
+
+            <div class="calendar-weekdays">
+
+                <div>
+                    MON
+                </div>
+
+                <div>
+                    TUE
+                </div>
+
+                <div>
+                    WED
+                </div>
+
+                <div>
+                    THU
+                </div>
+
+                <div>
+                    FRI
+                </div>
+
+                <div>
+                    SAT
+                </div>
+
+                <div>
+                    SUN
+                </div>
+
+            </div>
+
+
+            <!-- CALENDAR DAYS -->
+
+            <div class="calendar-grid">
+
+                @foreach (var day in CalendarDays)
+                {
+                    if (day.IsEmpty)
                     {
-                        <tr>
+                        <div class="calendar-day empty-day"></div>
+                    }
+                    else
+                    {
+                        var dayDate = day.Date;
 
-                            <td>
-                                @item.TransactionDate.ToShortDateString()
-                            </td>
+                        var dayTransactions =
+                            GetTransactionsForDate(dayDate);
 
-                            @if (IsAdmin)
+                        var dayIncome =
+                            GetIncomeForDate(dayDate);
+
+                        var dayExpense =
+                            GetExpenseForDate(dayDate);
+
+                        var isSelected =
+                            SelectedDate.HasValue &&
+                            SelectedDate.Value.Date == dayDate.Date;
+
+                        var isToday =
+                            dayDate.Date == DateTime.Today;
+
+
+                        <button type="button"
+                                class="calendar-day @(isToday ? "today-day" : "") @(isSelected ? "selected-day" : "")"
+                                @onclick="() => SelectDate(dayDate)">
+
+                            <div class="calendar-day-top">
+
+                                <span class="calendar-day-number">
+                                    @dayDate.Day
+                                </span>
+
+                                @if (dayTransactions.Any())
+                                {
+                                    <span class="day-transaction-count">
+                                        @dayTransactions.Count()
+                                    </span>
+                                }
+
+                            </div>
+
+
+                            @if (dayIncome > 0)
                             {
-                                <td>
-                                    @item.UserName
-                                </td>
+                                <div class="calendar-income">
+                                    +₹@dayIncome.ToString("N0")
+                                </div>
                             }
 
-                            <td>
-                                @item.CategoryName
-                            </td>
 
-                            <td>
+                            @if (dayExpense > 0)
+                            {
+                                <div class="calendar-expense">
+                                    -₹@dayExpense.ToString("N0")
+                                </div>
+                            }
 
-                                @if (item.TransactionType == "Income")
-                                {
-                                    <span class="badge bg-success">
-                                        Income
+
+                            @if (dayIncome == 0 &&
+                                 dayExpense == 0)
+                            {
+                                <div class="calendar-empty-label">
+                                    —
+                                </div>
+                            }
+
+                        </button>
+                    }
+                }
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             SELECTED DAY
+             ===================================================== -->
+
+        @if (SelectedDate.HasValue)
+        {
+            var selectedTransactions =
+                GetTransactionsForDate(
+                    SelectedDate.Value);
+
+
+            <section class="selected-day-section">
+
+
+                <!-- DAY HEADER -->
+
+                <div class="selected-day-header">
+
+                    <div>
+
+                        <span class="transactions-eyebrow">
+                            SELECTED DAY
+                        </span>
+
+                        <h2>
+                            @SelectedDate.Value.ToString("dddd, dd MMMM yyyy")
+                        </h2>
+
+                    </div>
+
+
+                    <div class="selected-day-summary">
+
+                        <div>
+
+                            <span>
+                                Income
+                            </span>
+
+                            <strong class="income-text">
+                                +₹@GetIncomeForDate(SelectedDate.Value).ToString("N0")
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Expense
+                            </span>
+
+                            <strong class="expense-text">
+                                -₹@GetExpenseForDate(SelectedDate.Value).ToString("N0")
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                @if (!selectedTransactions.Any())
+                {
+                    <div class="selected-day-empty">
+
+                        <div class="selected-empty-icon">
+
+                            <i class="bi bi-calendar2-check"></i>
+
+                        </div>
+
+                        <strong>
+                            No transactions on this day
+                        </strong>
+
+                        <span>
+                            Select another date or add a transaction.
+                        </span>
+
+                    </div>
+                }
+                else
+                {
+                    <div class="selected-transactions-list">
+
+                        @foreach (var transaction in selectedTransactions)
+                        {
+                            var isIncome =
+                                string.Equals(
+                                    transaction.TransactionType,
+                                    "Income",
+                                    StringComparison.OrdinalIgnoreCase);
+
+
+                            <div class="transaction-item">
+
+
+                                <!-- ICON -->
+
+                                <div class="transaction-item-icon @(isIncome ? "transaction-income-icon" : "transaction-expense-icon")">
+
+                                    <i class="bi @(isIncome ? "bi-arrow-down-left" : "bi-arrow-up-right")"></i>
+
+                                </div>
+
+
+                                <!-- DETAILS -->
+
+                                <div class="transaction-item-details">
+
+                                    <strong>
+                                        @transaction.CategoryName
+                                    </strong>
+
+                                    <span>
+
+                                        @(string.IsNullOrWhiteSpace(transaction.Description)
+                                            ? "No description"
+                                            : transaction.Description)
+
                                     </span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-danger">
-                                        Expense
+
+
+                                    <div class="transaction-item-meta">
+
+                                        <span>
+                                            @transaction.TransactionDate.ToString("hh:mm tt")
+                                        </span>
+
+
+                                        @if (transaction.RecurringPaymentId.HasValue)
+                                        {
+                                            <span class="recurring-badge">
+
+                                                <i class="bi bi-arrow-repeat"></i>
+
+                                                Recurring
+
+                                            </span>
+                                        }
+
+                                    </div>
+
+                                </div>
+
+
+                                <!-- AMOUNT -->
+
+                                <div class="transaction-item-amount">
+
+                                    <strong class="@(isIncome ? "income-text" : "expense-text")">
+
+                                        @(isIncome ? "+" : "-")₹@transaction.Amount.ToString("N0")
+
+                                    </strong>
+
+                                    <span class="transaction-type-label @(isIncome ? "income-label" : "expense-label")">
+
+                                        @(isIncome ? "Income" : "Expense")
+
                                     </span>
-                                }
 
-                            </td>
+                                </div>
 
-                            <td>
 
-                                @if (item.TransactionType == "Income")
+                                <!-- ACTIONS -->
+
+                                @if (!IsAdmin)
                                 {
-                                    <span class="text-success fw-bold">
-                                        + ₹ @item.Amount
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="text-danger fw-bold">
-                                        - ₹ @item.Amount
-                                    </span>
+                                    <div class="transaction-item-actions">
+
+                                        <a href="/transactions/edit/@transaction.TransactionId"
+                                           class="transaction-edit-button">
+
+                                            <i class="bi bi-pencil"></i>
+
+                                        </a>
+
+
+                                        <a href="/transactions/delete/@transaction.TransactionId"
+                                           class="transaction-delete-button">
+
+                                            <i class="bi bi-trash"></i>
+
+                                        </a>
+
+                                    </div>
                                 }
 
-                            </td>
+                            </div>
+                        }
 
-                            <td>
-                                @item.Description
-                            </td>
+                    </div>
+                }
+
+            </section>
+        }
+
+
+        <!-- =====================================================
+             ALL TRANSACTIONS
+             ===================================================== -->
+
+        <section class="all-transactions-section">
+
+            <div class="all-transactions-header">
+
+                <div>
+
+                    <span class="transactions-eyebrow">
+                        ACTIVITY
+                    </span>
+
+                    <h2>
+                        All transactions
+                    </h2>
+
+                </div>
+
+                <span class="transaction-result-count">
+                    @FilteredTransactions.Count() results
+                </span>
+
+            </div>
+
+
+            @if (!FilteredTransactions.Any())
+            {
+                <div class="selected-day-empty">
+
+                    <div class="selected-empty-icon">
+
+                        <i class="bi bi-receipt"></i>
+
+                    </div>
+
+                    <strong>
+                        No transactions found
+                    </strong>
+
+                    <span>
+                        Try changing your filters.
+                    </span>
+
+                </div>
+            }
+            else
+            {
+                <div class="selected-transactions-list">
+
+                    @foreach (var transaction in FilteredTransactions)
+                    {
+                        var isIncome =
+                            string.Equals(
+                                transaction.TransactionType,
+                                "Income",
+                                StringComparison.OrdinalIgnoreCase);
+
+
+                        <div class="transaction-item">
+
+
+                            <div class="transaction-item-icon @(isIncome ? "transaction-income-icon" : "transaction-expense-icon")">
+
+                                <i class="bi @(isIncome ? "bi-arrow-down-left" : "bi-arrow-up-right")"></i>
+
+                            </div>
+
+
+                            <div class="transaction-item-details">
+
+                                <strong>
+                                    @transaction.CategoryName
+                                </strong>
+
+                                <span>
+
+                                    @(string.IsNullOrWhiteSpace(transaction.Description)
+                                        ? "No description"
+                                        : transaction.Description)
+
+                                </span>
+
+
+                                <div class="transaction-item-meta">
+
+                                    <span>
+                                        @transaction.TransactionDate.ToString("dd MMM yyyy")
+                                    </span>
+
+
+                                    @if (transaction.RecurringPaymentId.HasValue)
+                                    {
+                                        <span class="recurring-badge">
+
+                                            <i class="bi bi-arrow-repeat"></i>
+
+                                            Recurring
+
+                                        </span>
+                                    }
+
+                                    @if (IsAdmin)
+                                    {
+                                        <span>
+                                            User: @transaction.UserName
+                                        </span>
+                                    }
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="transaction-item-amount">
+
+                                <strong class="@(isIncome ? "income-text" : "expense-text")">
+
+                                    @(isIncome ? "+" : "-")₹@transaction.Amount.ToString("N0")
+
+                                </strong>
+
+                                <span class="transaction-type-label @(isIncome ? "income-label" : "expense-label")">
+
+                                    @(isIncome ? "Income" : "Expense")
+
+                                </span>
+
+                            </div>
+
 
                             @if (!IsAdmin)
                             {
-                                <td>
+                                <div class="transaction-item-actions">
 
-                                    <a href="/transactions/edit/@item.TransactionId"
-                                       class="btn btn-warning btn-sm me-1">
-                                        Edit
+                                    <a href="/transactions/edit/@transaction.TransactionId"
+                                       class="transaction-edit-button">
+
+                                        <i class="bi bi-pencil"></i>
+
                                     </a>
 
-                                    <a href="/transactions/delete/@item.TransactionId"
-                                       class="btn btn-danger btn-sm">
-                                        Delete
+
+                                    <a href="/transactions/delete/@transaction.TransactionId"
+                                       class="transaction-delete-button">
+
+                                        <i class="bi bi-trash"></i>
+
                                     </a>
 
-                                </td>
+                                </div>
                             }
 
-                        </tr>
+                        </div>
                     }
 
-                </tbody>
+                </div>
+            }
 
-            </table>
+        </section>
 
-        </div>
-    }
-
-    @if (TotalPages > 1)
-    {
-        <nav class="mt-4">
-
-            <ul class="pagination justify-content-center">
-
-                <li class="page-item @(CurrentPage == 1 ? "disabled" : "")">
-
-                    <button class="page-link"
-                            disabled="@(CurrentPage == 1)"
-                            @onclick="PreviousPage">
-
-                        Previous
-
-                    </button>
-
-                </li>
-
-                @for (var i = 1; i <= TotalPages; i++)
-                {
-                    var pageNumber = i;
-
-                    <li class="page-item @(pageNumber == CurrentPage ? "active" : "")">
-
-                        <button class="page-link"
-                                @onclick="() => GoToPage(pageNumber)">
-
-                            @pageNumber
-
-                        </button>
-
-                    </li>
-                }
-
-                <li class="page-item @(CurrentPage == TotalPages ? "disabled" : "")">
-
-                    <button class="page-link"
-                            disabled="@(CurrentPage == TotalPages)"
-                            @onclick="NextPage">
-
-                        Next
-
-                    </button>
-
-                </li>
-
-            </ul>
-
-        </nav>
-    }
+    </div>
 }
+
 
 @code
 {
-    private const int PageSize = 10;
+    // =========================================================
+    // DATA
+    // =========================================================
 
     private IEnumerable<Transaction> Transactions =
         new List<Transaction>();
@@ -387,27 +890,158 @@ else
     private IEnumerable<Category> Categories =
         new List<Category>();
 
-    private TransactionSummary Summary = new();
 
-    private DateTime? FromDate;
+    // =========================================================
+    // STATE
+    // =========================================================
 
-    private DateTime? ToDate;
+    private bool IsLoading = true;
+
+    private bool IsAdmin;
+
+    private string? ErrorMessage;
+
+    private int? UserId;
+
+
+    // =========================================================
+    // CALENDAR
+    // =========================================================
+
+    private DateTime CurrentMonth =
+        new DateTime(
+            DateTime.Today.Year,
+            DateTime.Today.Month,
+            1);
+
+    private DateTime? SelectedDate;
+
+
+    // =========================================================
+    // FILTERS
+    // =========================================================
 
     private int? CategoryId;
 
     private string? Type;
 
-    private int CurrentPage = 1;
+    private string SearchText = "";
 
-    private int TotalPages;
 
-    private bool IsAdmin;
+    // =========================================================
+    // MONTH DATA
+    // =========================================================
 
-    private bool IsLoading = true;
+    private decimal MonthIncome =>
+        Transactions
+            .Where(IsIncome)
+            .Sum(x => x.Amount);
 
-    private string? ErrorMessage;
 
-    private int? UserId;
+    private decimal MonthExpense =>
+        Transactions
+            .Where(IsExpense)
+            .Sum(x => x.Amount);
+
+
+    private decimal MonthNet =>
+        MonthIncome - MonthExpense;
+
+
+    private int MonthTransactionCount =>
+        Transactions.Count();
+
+
+    private IEnumerable<Transaction> FilteredTransactions =>
+        Transactions
+            .Where(TransactionMatchesFilters)
+            .OrderByDescending(
+                x => x.TransactionDate);
+
+
+    private bool HasActiveFilters =>
+        CategoryId.HasValue ||
+        !string.IsNullOrWhiteSpace(Type) ||
+        !string.IsNullOrWhiteSpace(SearchText);
+
+
+    // =========================================================
+    // CALENDAR DAY MODEL
+    // =========================================================
+
+    private IEnumerable<CalendarDay> CalendarDays
+    {
+        get
+        {
+            var firstDay =
+                new DateTime(
+                    CurrentMonth.Year,
+                    CurrentMonth.Month,
+                    1);
+
+            var daysInMonth =
+                DateTime.DaysInMonth(
+                    CurrentMonth.Year,
+                    CurrentMonth.Month);
+
+
+            // Monday = 1
+            var startOffset =
+                ((int)firstDay.DayOfWeek + 6) % 7;
+
+
+            var days =
+                new List<CalendarDay>();
+
+
+            for (var i = 0;
+                 i < startOffset;
+                 i++)
+            {
+                days.Add(
+                    new CalendarDay
+                    {
+                        IsEmpty = true
+                    });
+            }
+
+
+            for (var day = 1;
+                 day <= daysInMonth;
+                 day++)
+            {
+                days.Add(
+                    new CalendarDay
+                    {
+                        Date =
+                            new DateTime(
+                                CurrentMonth.Year,
+                                CurrentMonth.Month,
+                                day),
+
+                        IsEmpty = false
+                    });
+            }
+
+
+            while (days.Count % 7 != 0)
+            {
+                days.Add(
+                    new CalendarDay
+                    {
+                        IsEmpty = true
+                    });
+            }
+
+
+            return days;
+        }
+    }
+
+
+    // =========================================================
+    // INITIALIZATION
+    // =========================================================
 
     protected override async Task OnInitializedAsync()
     {
@@ -417,17 +1051,21 @@ else
                 await AuthenticationStateProvider
                     .GetAuthenticationStateAsync();
 
+
             var user =
                 authenticationState.User;
 
+
             IsAdmin =
                 user.IsInRole("Admin");
+
 
             if (!IsAdmin)
             {
                 var claim =
                     user.FindFirst(
                         ClaimTypes.NameIdentifier);
+
 
                 if (claim == null ||
                     !int.TryParse(
@@ -440,14 +1078,17 @@ else
                     return;
                 }
 
+
                 UserId = id;
             }
+
 
             Categories =
                 await TransactionService
                     .GetCategoriesAsync();
 
-            await LoadTransactions();
+
+            await LoadMonthTransactions();
         }
         catch (Exception)
         {
@@ -460,71 +1101,250 @@ else
         }
     }
 
-    private async Task LoadTransactions()
+
+    // =========================================================
+    // LOAD MONTH
+    // =========================================================
+
+    private async Task LoadMonthTransactions()
     {
+        var monthStart =
+            new DateTime(
+                CurrentMonth.Year,
+                CurrentMonth.Month,
+                1);
+
+
+        var monthEnd =
+            monthStart.AddMonths(1).AddDays(-1);
+
+
         var result =
             await TransactionService.GetTransactionsAsync(
                 UserId,
-                FromDate,
-                ToDate,
-                CategoryId,
-                Type,
-                CurrentPage,
-                PageSize);
+                monthStart,
+                monthEnd,
+                null,
+                null,
+                1,
+                1000);
+
 
         Transactions =
-            result.Transactions;
+            result.Transactions
+                .ToList();
 
-        Summary =
-            result.Summary;
 
-        CurrentPage =
-            result.CurrentPage;
-
-        TotalPages =
-            result.TotalPages;
-    }
-
-    private async Task Search()
-    {
-        CurrentPage = 1;
-
-        await LoadTransactions();
-    }
-
-    private async Task PreviousPage()
-    {
-        if (CurrentPage <= 1)
+        if (SelectedDate.HasValue &&
+            SelectedDate.Value.Month != CurrentMonth.Month)
         {
-            return;
+            SelectedDate = null;
+        }
+    }
+
+
+    // =========================================================
+    // MONTH NAVIGATION
+    // =========================================================
+
+    private async Task PreviousMonth()
+    {
+        CurrentMonth =
+            CurrentMonth.AddMonths(-1);
+
+
+        SelectedDate = null;
+
+
+        await LoadMonthTransactions();
+    }
+
+
+    private async Task NextMonth()
+    {
+        CurrentMonth =
+            CurrentMonth.AddMonths(1);
+
+
+        SelectedDate = null;
+
+
+        await LoadMonthTransactions();
+    }
+
+
+    private async Task GoToToday()
+    {
+        CurrentMonth =
+            new DateTime(
+                DateTime.Today.Year,
+                DateTime.Today.Month,
+                1);
+
+
+        SelectedDate =
+            DateTime.Today;
+
+
+        await LoadMonthTransactions();
+    }
+
+
+    // =========================================================
+    // DATE SELECTION
+    // =========================================================
+
+    private void SelectDate(DateTime date)
+    {
+        SelectedDate =
+            date.Date;
+    }
+
+
+    // =========================================================
+    // DAILY CALCULATIONS
+    // =========================================================
+
+    private IEnumerable<Transaction> GetTransactionsForDate(
+        DateTime date)
+    {
+        return Transactions
+            .Where(x =>
+                x.TransactionDate.Date ==
+                date.Date)
+            .Where(TransactionMatchesFilters)
+            .OrderByDescending(
+                x => x.TransactionDate);
+    }
+
+
+    private decimal GetIncomeForDate(
+        DateTime date)
+    {
+        return GetTransactionsForDate(date)
+            .Where(IsIncome)
+            .Sum(x => x.Amount);
+    }
+
+
+    private decimal GetExpenseForDate(
+        DateTime date)
+    {
+        return GetTransactionsForDate(date)
+            .Where(IsExpense)
+            .Sum(x => x.Amount);
+    }
+
+
+    // =========================================================
+    // TRANSACTION TYPE
+    // =========================================================
+
+    private bool IsIncome(
+        Transaction transaction)
+    {
+        return string.Equals(
+            transaction.TransactionType,
+            "Income",
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    private bool IsExpense(
+        Transaction transaction)
+    {
+        return !IsIncome(transaction);
+    }
+
+
+    // =========================================================
+    // FILTERING
+    // =========================================================
+
+    private bool TransactionMatchesFilters(
+        Transaction transaction)
+    {
+        if (CategoryId.HasValue &&
+            transaction.CategoryId != CategoryId.Value)
+        {
+            return false;
         }
 
-        CurrentPage--;
 
-        await LoadTransactions();
-    }
-
-    private async Task NextPage()
-    {
-        if (CurrentPage >= TotalPages)
+        if (!string.IsNullOrWhiteSpace(Type) &&
+            !string.Equals(
+                transaction.TransactionType,
+                Type,
+                StringComparison.OrdinalIgnoreCase))
         {
-            return;
+            return false;
         }
 
-        CurrentPage++;
 
-        await LoadTransactions();
-    }
-
-    private async Task GoToPage(int page)
-    {
-        if (page < 1 || page > TotalPages)
+        if (!string.IsNullOrWhiteSpace(SearchText))
         {
-            return;
+            var search =
+                SearchText.Trim();
+
+
+            var matchesDescription =
+                !string.IsNullOrWhiteSpace(
+                    transaction.Description) &&
+                transaction.Description
+                    .Contains(
+                        search,
+                        StringComparison.OrdinalIgnoreCase);
+
+
+            var matchesCategory =
+                !string.IsNullOrWhiteSpace(
+                    transaction.CategoryName) &&
+                transaction.CategoryName
+                    .Contains(
+                        search,
+                        StringComparison.OrdinalIgnoreCase);
+
+
+            if (!matchesDescription &&
+                !matchesCategory)
+            {
+                return false;
+            }
         }
 
-        CurrentPage = page;
 
-        await LoadTransactions();
+        return true;
+    }
+
+
+    private async Task ApplyFilters()
+    {
+        StateHasChanged();
+
+        await Task.CompletedTask;
+    }
+
+
+    private void ClearFilters()
+    {
+        CategoryId = null;
+
+        Type = null;
+
+        SearchText = "";
+
+        StateHasChanged();
+    }
+
+
+    // =========================================================
+    // CALENDAR DAY MODEL
+    // =========================================================
+
+    private sealed class CalendarDay
+    {
+        public DateTime Date { get; set; }
+
+        public bool IsEmpty { get; set; }
     }
 }

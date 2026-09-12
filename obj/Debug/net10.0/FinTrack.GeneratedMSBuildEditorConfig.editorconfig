@@ -90,10 +90,6 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xCdWRnZXRzXEluZGV4LnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/FinTrack/Components/Pages/Dashboard/Dashboard.razor]
-build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xEYXNoYm9hcmRcRGFzaGJvYXJkLnJhem9y
-build_metadata.AdditionalFiles.CssScope = 
-
 [D:/FinTrack/Components/Pages/Home.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xIb21lLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
@@ -104,10 +100,6 @@ build_metadata.AdditionalFiles.CssScope =
 
 [D:/FinTrack/Components/Pages/RecurringPayments/Index.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xSZWN1cnJpbmdQYXltZW50c1xJbmRleC5yYXpvcg==
-build_metadata.AdditionalFiles.CssScope = 
-
-[D:/FinTrack/Components/Pages/Reports/Index.razor]
-build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xSZXBvcnRzXEluZGV4LnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
 [D:/FinTrack/Components/Pages/Transactions/Create.razor]
@@ -133,3 +125,11 @@ build_metadata.AdditionalFiles.CssScope =
 [D:/FinTrack/Components/_Imports.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xfSW1wb3J0cy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
+
+[D:/FinTrack/Components/Pages/Dashboard/Dashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xEYXNoYm9hcmRcRGFzaGJvYXJkLnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-vqz4wyp89z
+
+[D:/FinTrack/Components/Pages/Reports/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xSZXBvcnRzXEluZGV4LnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-u9hcvepy3j

@@ -1,271 +1,986 @@
 @page "/dashboard"
-@attribute [Authorize]
 
 @using System.Security.Claims
 @using FinTrack.Models
 @using FinTrack.Services.Interfaces
+@using Microsoft.AspNetCore.Authorization
+
+@attribute [Authorize]
 
 @inject IDashboardService DashboardService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<PageTitle>Dashboard</PageTitle>
-
-<h2 class="mb-4">
-    Dashboard
-</h2>
+<PageTitle>FinTrack Dashboard</PageTitle>
 
 @if (IsLoading)
 {
-    <div class="alert alert-info">
-        Loading dashboard...
+    <div class="dashboard-loader">
+        <div class="loader-ring"></div>
+        <span>Loading dashboard...</span>
     </div>
 }
-else if (!string.IsNullOrEmpty(ErrorMessage))
+else if (!string.IsNullOrWhiteSpace(ErrorMessage))
 {
-    <div class="alert alert-danger">
-        @ErrorMessage
+    <div class="dashboard-error">
+        <i class="bi bi-exclamation-triangle"></i>
+        <div>
+            <strong>Dashboard unavailable</strong>
+            <span>@ErrorMessage</span>
+        </div>
     </div>
 }
 else
 {
-    @if (DashboardData.Budgets.Any(x => x.UsagePercentage >= 90))
-    {
-        <div class="alert alert-warning">
+    <div class="fin-dashboard">
 
-            <h5>⚠ Budget Alerts</h5>
+        <!-- TOP HEADER -->
+        <div class="dashboard-topbar">
+            <div>
+                <div class="dashboard-title">
+                    Financial Dashboard
+                </div>
 
-            <ul class="mb-0">
+                <div class="dashboard-subtitle">
+                    Your personal financial overview
+                </div>
+            </div>
 
-                @foreach (var item in DashboardData.Budgets
-                    .Where(x => x.UsagePercentage >= 90))
-                {
-                    <li>
-                        <strong>@item.CategoryName</strong>
-                        has used
-                        <strong>
-                            @item.UsagePercentage.ToString("0")%
+            <a href="/transactions/create"
+               class="dashboard-add">
+                <i class="bi bi-plus-lg"></i>
+                Add transaction
+            </a>
+        </div>
+
+        <!-- TOP SUMMARY CARDS -->
+        <div class="top-card-grid">
+
+            <!-- SUMMARY -->
+            <div class="finance-card summary-card">
+
+                <div class="card-title-row">
+                    <div class="card-title">
+                        <i class="bi bi-wallet2"></i>
+                        Summary
+                    </div>
+
+                    <i class="bi bi-three-dots"></i>
+                </div>
+
+                <div class="summary-line">
+                    <span>Balance:</span>
+
+                    <strong class="money-positive">
+                        ₹@DashboardData.Summary.Balance.ToString("N2")
+                    </strong>
+                </div>
+
+                <div class="summary-line">
+                    <span>Income:</span>
+
+                    <strong class="money-positive">
+                        ₹@DashboardData.Summary.TotalIncome.ToString("N2")
+                    </strong>
+                </div>
+
+                <div class="summary-line">
+                    <span>Expenses:</span>
+
+                    <strong class="money-negative">
+                        -₹@DashboardData.Summary.TotalExpense.ToString("N2")
+                    </strong>
+                </div>
+
+                <div class="summary-total">
+                    <span>Net balance</span>
+
+                    <strong>
+                        ₹@DashboardData.Summary.Balance.ToString("N2")
+                    </strong>
+                </div>
+
+            </div>
+
+            <!-- THIS MONTH -->
+            @{
+                var currentIncome = DashboardData.CurrentMonth.TotalIncome;
+                var currentExpense = DashboardData.CurrentMonth.TotalExpense;
+                var currentTotal = currentIncome + currentExpense;
+
+                var currentExpensePercentage =
+                    currentTotal > 0
+                        ? currentExpense / currentTotal * 100
+                        : 0;
+
+                var currentIncomePercentage =
+                    currentTotal > 0
+                        ? currentIncome / currentTotal * 100
+                        : 0;
+            }
+
+            <div class="finance-card month-card">
+
+                <div class="card-title-row">
+                    <div class="card-title">
+                        <i class="bi bi-calendar3"></i>
+                        This month
+                    </div>
+
+                    <i class="bi bi-three-dots"></i>
+                </div>
+
+                <div class="month-content">
+
+                    <div class="donut"
+                         style="background: conic-gradient(#3dcc65 0% @($"{currentIncomePercentage:0.##}%"), #f04444 @($"{currentIncomePercentage:0.##}%") 100%);">
+
+                        <div class="donut-hole">
+                            <strong>
+                                @currentIncomePercentage.ToString("0")%
+                            </strong>
+
+                            <span>income</span>
+                        </div>
+
+                    </div>
+
+                    <div class="month-values">
+
+                        <div class="month-value">
+                            <span class="green-dot"></span>
+
+                            <div>
+                                <small>Income</small>
+
+                                <strong class="money-positive">
+                                    ₹@currentIncome.ToString("N0")
+                                </strong>
+                            </div>
+                        </div>
+
+                        <div class="month-value">
+                            <span class="red-dot"></span>
+
+                            <div>
+                                <small>Expenses</small>
+
+                                <strong class="money-negative">
+                                    -₹@currentExpense.ToString("N0")
+                                </strong>
+                            </div>
+                        </div>
+
+                        <div class="month-net">
+                            <span>Net</span>
+
+                            <strong>
+                                ₹@DashboardData.SavingsThisMonth.ToString("N0")
+                            </strong>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- LAST MONTH -->
+            @{
+                var previousIncome = DashboardData.PreviousMonth.TotalIncome;
+                var previousExpense = DashboardData.PreviousMonth.TotalExpense;
+                var previousTotal = previousIncome + previousExpense;
+
+                var previousIncomePercentage =
+                    previousTotal > 0
+                        ? previousIncome / previousTotal * 100
+                        : 0;
+            }
+
+            <div class="finance-card month-card">
+
+                <div class="card-title-row">
+                    <div class="card-title">
+                        <i class="bi bi-calendar3"></i>
+                        Last month
+                    </div>
+
+                    <i class="bi bi-three-dots"></i>
+                </div>
+
+                <div class="month-content">
+
+                    <div class="donut last-month"
+                         style="background: conic-gradient(#3dcc65 0% @($"{previousIncomePercentage:0.##}%"), #f04444 @($"{previousIncomePercentage:0.##}%") 100%);">
+
+                        <div class="donut-hole">
+                            <strong>
+                                @previousIncomePercentage.ToString("0")%
+                            </strong>
+
+                            <span>income</span>
+                        </div>
+
+                    </div>
+
+                    <div class="month-values">
+
+                        <div class="month-value">
+                            <span class="green-dot"></span>
+
+                            <div>
+                                <small>Income</small>
+
+                                <strong class="money-positive">
+                                    ₹@previousIncome.ToString("N0")
+                                </strong>
+                            </div>
+                        </div>
+
+                        <div class="month-value">
+                            <span class="red-dot"></span>
+
+                            <div>
+                                <small>Expenses</small>
+
+                                <strong class="money-negative">
+                                    -₹@previousExpense.ToString("N0")
+                                </strong>
+                            </div>
+                        </div>
+
+                        <div class="month-net">
+                            <span>Net</span>
+
+                            <strong>
+                                ₹@DashboardData.SavingsLastMonth.ToString("N0")
+                            </strong>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- MAIN GRID -->
+        <div class="dashboard-grid">
+
+            <!-- LEFT COLUMN -->
+            <div class="dashboard-left">
+
+                <!-- FINANCIAL POSITION -->
+                <div class="finance-card accounts-card">
+
+                    <div class="card-title-row">
+                        <div class="card-title">
+                            <i class="bi bi-bank"></i>
+                            Financial position
+                        </div>
+
+                        <i class="bi bi-three-dots"></i>
+                    </div>
+
+                    <div class="position-row">
+                        <div>
+                            <strong>Total balance</strong>
+                            <span>All recorded transactions</span>
+                        </div>
+
+                        <strong class="money-positive">
+                            ₹@DashboardData.Summary.Balance.ToString("N2")
                         </strong>
-                        of its budget.
-                    </li>
-                }
+                    </div>
 
-            </ul>
+                    <div class="position-row">
+                        <div>
+                            <strong>Income this month</strong>
+                            <span>Money received</span>
+                        </div>
 
-        </div>
-    }
-    else
-    {
-        <div class="alert alert-success">
-            ✅ Great! All budgets are under control.
-        </div>
-    }
+                        <strong class="money-positive">
+                            ₹@DashboardData.CurrentMonth.TotalIncome.ToString("N2")
+                        </strong>
+                    </div>
 
-    <div class="row">
+                    <div class="position-row">
+                        <div>
+                            <strong>Expenses this month</strong>
+                            <span>Money spent</span>
+                        </div>
 
-        <div class="col-md-4 mb-3">
-
-            <div class="card bg-success text-white shadow">
-
-                <div class="card-body text-center">
-
-                    <h5>Total Income</h5>
-
-                    <h2>
-                        ₹ @DashboardData.Summary.TotalIncome
-                    </h2>
+                        <strong class="money-negative">
+                            -₹@DashboardData.CurrentMonth.TotalExpense.ToString("N2")
+                        </strong>
+                    </div>
 
                 </div>
 
-            </div>
+                <!-- LAST 7 DAYS -->
+                <div class="finance-card seven-day-card">
 
-        </div>
+                    <div class="card-title-row">
 
-        <div class="col-md-4 mb-3">
+                        <div>
+                            <div class="card-title">
+                                <i class="bi bi-bar-chart"></i>
+                                Last 7 days
+                            </div>
 
-            <div class="card bg-danger text-white shadow">
+                            <div class="card-description">
+                                Daily spending activity
+                            </div>
+                        </div>
 
-                <div class="card-body text-center">
+                        <i class="bi bi-three-dots"></i>
 
-                    <h5>Total Expense</h5>
+                    </div>
 
-                    <h2>
-                        ₹ @DashboardData.Summary.TotalExpense
-                    </h2>
+                    @{
+                        var maxDaily =
+                            DashboardData.LastSevenDays.Any()
+                                ? Math.Max(
+                                    DashboardData.LastSevenDays.Max(x => x.Amount),
+                                    1)
+                                : 1;
+                    }
 
-                </div>
+                    <div class="seven-day-chart">
 
-            </div>
+                        <div class="chart-y-axis">
 
-        </div>
+                            <span>
+                                ₹@FormatCompact(maxDaily)
+                            </span>
 
-        <div class="col-md-4 mb-3">
+                            <span>
+                                ₹@FormatCompact(maxDaily * .75m)
+                            </span>
 
-            <div class="card bg-primary text-white shadow">
+                            <span>
+                                ₹@FormatCompact(maxDaily * .50m)
+                            </span>
 
-                <div class="card-body text-center">
+                            <span>
+                                ₹@FormatCompact(maxDaily * .25m)
+                            </span>
 
-                    <h5>Balance</h5>
+                            <span>₹0</span>
 
-                    <h2>
-                        ₹ @DashboardData.Summary.Balance
-                    </h2>
+                        </div>
 
-                </div>
+                        <div class="seven-chart-area">
 
-            </div>
+                            <div class="horizontal-lines">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
 
-        </div>
+                            <div class="daily-bars">
 
-    </div>
+                                @foreach (var day in DashboardData.LastSevenDays)
+                                {
+                                    var barHeight =
+                                        day.Amount > 0
+                                            ? Math.Max(
+                                                (double)(day.Amount / maxDaily * 100),
+                                                3)
+                                            : 2;
 
-    <hr />
+                                    <div class="daily-column">
 
-    <h3 class="mb-3">
-        Budget Usage
-    </h3>
+                                        <div class="daily-bar-area">
 
-    <table class="table table-bordered table-hover">
+                                            <span class="daily-tooltip">
+                                                ₹@day.Amount.ToString("N0")
+                                            </span>
 
-        <thead class="table-dark">
+                                            <div class="daily-bar"
+                                                 style="height:@($"{barHeight:0.##}%")">
+                                            </div>
 
-            <tr>
-                <th>Category</th>
-                <th>Budget</th>
-                <th>Spent</th>
-                <th>Remaining</th>
-                <th style="width:280px">Progress</th>
-            </tr>
+                                        </div>
 
-        </thead>
+                                        <span class="daily-label">
+                                            @day.Date.ToString("dd")
+                                            @day.Date.ToString("ddd").Substring(0, 1)
+                                        </span>
 
-        <tbody>
-
-            @foreach (var item in DashboardData.Budgets)
-            {
-                var percentage = item.UsagePercentage;
-
-                var color = percentage >= 100
-                    ? "bg-danger"
-                    : percentage >= 90
-                        ? "bg-warning"
-                        : "bg-success";
-
-                var width = percentage > 100 ? 100 : percentage;
-
-                <tr>
-
-                    <td>
-                        @item.CategoryName
-                    </td>
-
-                    <td>
-                        ₹ @item.LimitAmount
-                    </td>
-
-                    <td>
-                        ₹ @item.SpentAmount
-                    </td>
-
-                    <td>
-                        ₹ @item.RemainingAmount
-                    </td>
-
-                    <td>
-
-                        <div class="progress">
-
-                            <div class="progress-bar @color"
-                                 role="progressbar"
-                                 style="width:@($"{width}%")">
-
-                                @percentage.ToString("0")%
+                                    </div>
+                                }
 
                             </div>
 
                         </div>
 
-                    </td>
+                    </div>
 
-                </tr>
-            }
+                </div>
 
-        </tbody>
+                <!-- TRANSACTIONS -->
+                <div class="finance-card transactions-card">
 
-    </table>
+                    <div class="card-title-row">
 
-    <hr />
+                        <div>
+                            <div class="card-title">
+                                <i class="bi bi-list-ul"></i>
+                                Transactions
+                            </div>
 
-    <h3>
-        Recent Transactions
-    </h3>
+                            <div class="card-description">
+                                Latest financial activity
+                            </div>
+                        </div>
 
-    <table class="table table-hover">
+                        <a href="/transactions"
+                           class="view-link">
+                            View all
+                        </a>
 
-        <thead class="table-secondary">
+                    </div>
 
-            <tr>
-                <th>Date</th>
-                <th>Category</th>
-                <th>Type</th>
-                <th>Amount</th>
-            </tr>
+                    @if (!DashboardData.RecentTransactions.Any())
+                    {
+                        <div class="empty-dashboard">
 
-        </thead>
+                            <i class="bi bi-receipt"></i>
 
-        <tbody>
+                            <strong>No transactions yet</strong>
 
-            @foreach (var item in DashboardData.RecentTransactions)
-            {
-                <tr>
+                            <span>
+                                Your latest transactions will appear here.
+                            </span>
 
-                    <td>
-                        @item.TransactionDate.ToShortDateString()
-                    </td>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="transaction-table">
 
-                    <td>
-                        @item.CategoryName
-                    </td>
+                            @foreach (var transaction in DashboardData.RecentTransactions)
+                            {
+                                var isIncome =
+                                    string.Equals(
+                                        transaction.TransactionType,
+                                        "Income",
+                                        StringComparison.OrdinalIgnoreCase);
 
-                    <td>
+                                <div class="transaction-item">
 
-                        @if (item.TransactionType == "Income")
-                        {
-                            <span class="badge bg-success">
+                                    <div class="transaction-avatar @(isIncome ? "income-avatar" : "expense-avatar")">
+
+                                        <i class="bi @(isIncome
+                                            ? "bi-arrow-down-left"
+                                            : "bi-arrow-up-right")">
+                                        </i>
+
+                                    </div>
+
+                                    <div class="transaction-main">
+
+                                        <strong>
+                                            @transaction.CategoryName
+                                        </strong>
+
+                                        <span>
+                                            @(string.IsNullOrWhiteSpace(transaction.Description)
+                                                ? "No description"
+                                                : transaction.Description)
+                                        </span>
+
+                                    </div>
+
+                                    <div class="transaction-date">
+                                        @transaction.TransactionDate.ToString("dd/MM/yyyy")
+                                    </div>
+
+                                    <strong class="transaction-amount @(isIncome
+                                        ? "money-positive"
+                                        : "money-negative")">
+
+                                        @(isIncome ? "+" : "-")
+                                        ₹@transaction.Amount.ToString("N0")
+
+                                    </strong>
+
+                                </div>
+                            }
+
+                        </div>
+                    }
+
+                </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div class="dashboard-right">
+
+                <!-- BALANCE TREND -->
+                <div class="finance-card balance-chart-card">
+
+                    <div class="card-title-row">
+
+                        <div>
+                            <div class="card-title">
+                                <i class="bi bi-graph-up"></i>
+                                Balance
+                            </div>
+
+                            <div class="card-description">
+                                Six month financial trend
+                            </div>
+                        </div>
+
+                        <i class="bi bi-three-dots"></i>
+
+                    </div>
+
+                    @{
+                        var trendValues =
+                            DashboardData.MonthlyTrend
+                                .SelectMany(x => new[]
+                                {
+                                    x.Income,
+                                    x.Expense
+                                })
+                                .ToList();
+
+                        var maxTrend =
+                            trendValues.Any()
+                                ? Math.Max(trendValues.Max(), 1)
+                                : 1;
+                    }
+
+                    <div class="line-chart">
+
+                        <div class="line-y-axis">
+
+                            <span>
+                                ₹@FormatCompact(maxTrend)
+                            </span>
+
+                            <span>
+                                ₹@FormatCompact(maxTrend * .75m)
+                            </span>
+
+                            <span>
+                                ₹@FormatCompact(maxTrend * .50m)
+                            </span>
+
+                            <span>
+                                ₹@FormatCompact(maxTrend * .25m)
+                            </span>
+
+                            <span>₹0</span>
+
+                        </div>
+
+                        <div class="line-chart-area">
+
+                            <div class="line-grid">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+
+                            <div class="trend-bars">
+
+                                @foreach (var month in DashboardData.MonthlyTrend)
+                                {
+                                    var height =
+                                        month.Savings >= 0
+                                            ? Math.Max(
+                                                (double)(
+                                                    month.Savings /
+                                                    maxTrend * 100),
+                                                3)
+                                            : 3;
+
+                                    <div class="trend-column">
+
+                                        <div class="trend-value">
+
+                                            @if (month.Savings != 0)
+                                            {
+                                                @FormatCompact(
+                                                    Math.Abs(month.Savings))
+                                            }
+
+                                        </div>
+
+                                        <div class="trend-bar-wrapper">
+
+                                            <div class="trend-bar"
+                                                 style="height:@($"{height:0.##}%")">
+                                            </div>
+
+                                        </div>
+
+                                        <span>
+                                            @month.Label
+                                        </span>
+
+                                    </div>
+                                }
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- BUDGETS -->
+                <div class="finance-card budgets-card">
+
+                    <div class="card-title-row">
+
+                        <div>
+                            <div class="card-title">
+                                <i class="bi bi-bullseye"></i>
+                                Budgets
+                            </div>
+
+                            <div class="card-description">
+                                Current month
+                            </div>
+                        </div>
+
+                        <a href="/budgets"
+                           class="view-link">
+                            Manage
+                        </a>
+
+                    </div>
+
+                    @if (!DashboardData.Budgets.Any())
+                    {
+                        <div class="empty-dashboard">
+
+                            <i class="bi bi-pie-chart"></i>
+
+                            <strong>
+                                No budgets created
+                            </strong>
+
+                            <span>
+                                Create budgets to monitor your spending.
+                            </span>
+
+                            <a href="/budgets">
+                                Create budget
+                            </a>
+
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="budget-table">
+
+                            @foreach (var budget in DashboardData.Budgets.Take(5))
+                            {
+                                var percentage =
+                                    Math.Min(
+                                        Math.Max(
+                                            budget.UsagePercentage,
+                                            0),
+                                        100);
+
+                                var status =
+                                    budget.UsagePercentage >= 100
+                                        ? "danger"
+                                        : budget.UsagePercentage >= 80
+                                            ? "warning"
+                                            : "safe";
+
+                                <div class="budget-row">
+
+                                    <div class="budget-heading">
+
+                                        <div class="budget-category-icon @status">
+                                            <i class="bi bi-tag"></i>
+                                        </div>
+
+                                        <div>
+                                            <strong>
+                                                @budget.CategoryName
+                                            </strong>
+
+                                            <span>
+                                                ₹@budget.SpentAmount.ToString("N0")
+                                            </span>
+                                        </div>
+
+                                    </div>
+
+                                    <span class="budget-percentage @status">
+                                        @budget.UsagePercentage.ToString("0")%
+                                    </span>
+
+                                    <div class="budget-progress">
+
+                                        <div class="budget-progress-value @status"
+                                             style="width:@($"{percentage}%")">
+                                        </div>
+
+                                    </div>
+
+                                    <div class="budget-limit">
+
+                                        <span>
+                                            ₹@budget.SpentAmount.ToString("N0")
+                                        </span>
+
+                                        <span>
+                                            ₹@budget.LimitAmount.ToString("N0")
+                                        </span>
+
+                                    </div>
+
+                                </div>
+                            }
+
+                        </div>
+                    }
+
+                </div>
+
+                <!-- RECURRING -->
+                <div class="finance-card recurring-card">
+
+                    <div class="card-title-row">
+
+                        <div>
+                            <div class="card-title">
+                                <i class="bi bi-arrow-repeat"></i>
+                                Upcoming
+                            </div>
+
+                            <div class="card-description">
+                                Next 7 days
+                            </div>
+                        </div>
+
+                        <a href="/recurring-payments"
+                           class="view-link">
+                            Manage
+                        </a>
+
+                    </div>
+
+                    @if (!DashboardData.UpcomingPayments.Any())
+                    {
+                        <div class="empty-dashboard">
+
+                            <i class="bi bi-calendar-check"></i>
+
+                            <strong>
+                                Nothing upcoming
+                            </strong>
+
+                            <span>
+                                No recurring payments are due soon.
+                            </span>
+
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="upcoming-list">
+
+                            @foreach (var payment in DashboardData.UpcomingPayments)
+                            {
+                                <div class="upcoming-item">
+
+                                    <div class="upcoming-date">
+
+                                        <strong>
+                                            @payment.PaymentDate.ToString("dd")
+                                        </strong>
+
+                                        <span>
+                                            @payment.PaymentDate.ToString("MMM")
+                                        </span>
+
+                                    </div>
+
+                                    <div class="upcoming-info">
+
+                                        <strong>
+                                            @payment.PaymentName
+                                        </strong>
+
+                                        <span>
+                                            @payment.CategoryName
+                                        </span>
+
+                                    </div>
+
+                                    <div class="upcoming-amount">
+
+                                        <strong>
+                                            ₹@payment.Amount.ToString("N0")
+                                        </strong>
+
+                                        <span>
+                                            @if (payment.DaysUntil == 0)
+                                            {
+                                                <span class="today">
+                                                    Today
+                                                </span>
+                                            }
+                                            else if (payment.DaysUntil == 1)
+                                            {
+                                                @:Tomorrow
+                                            }
+                                            else
+                                            {
+                                                @:In @payment.DaysUntil days
+                                            }
+                                        </span>
+
+                                    </div>
+
+                                </div>
+                            }
+
+                        </div>
+                    }
+
+                </div>
+
+                <!-- CASH FLOW -->
+                <div class="finance-card cashflow-card">
+
+                    <div class="card-title-row">
+
+                        <div class="card-title">
+                            <i class="bi bi-arrow-left-right"></i>
+                            Cash flow
+                        </div>
+
+                    </div>
+
+                    <div class="cashflow-month">
+
+                        <button type="button">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+
+                        <strong>
+                            @DateTime.Today.ToString("MMMM yyyy")
+                        </strong>
+
+                        <button type="button">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+
+                    </div>
+
+                    <div class="cashflow-table">
+
+                        <div class="cashflow-header">
+
+                            <span></span>
+
+                            <strong class="income-text">
                                 Income
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-danger">
-                                Expense
-                            </span>
-                        }
+                            </strong>
 
-                    </td>
+                            <strong class="expense-text">
+                                Expenses
+                            </strong>
 
-                    <td>
+                        </div>
 
-                        @if (item.TransactionType == "Income")
-                        {
-                            <span class="text-success fw-bold">
-                                + ₹ @item.Amount
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="text-danger fw-bold">
-                                - ₹ @item.Amount
-                            </span>
-                        }
+                        <div class="cashflow-row">
 
-                    </td>
+                            <span>Total</span>
 
-                </tr>
-            }
+                            <strong class="income-text">
+                                ₹@DashboardData.CurrentMonth.TotalIncome.ToString("N0")
+                            </strong>
 
-        </tbody>
+                            <strong class="expense-text">
+                                -₹@DashboardData.CurrentMonth.TotalExpense.ToString("N0")
+                            </strong>
 
-    </table>
+                        </div>
+
+                        <div class="cashflow-row">
+
+                            <span>Transactions</span>
+
+                            <strong title="Recent transactions">
+                                @DashboardData.RecentTransactions.Count()
+                            </strong>
+
+                            <strong title="Recent expense transactions">
+                                @(DashboardData.RecentTransactions.Count(
+                                    x => !string.Equals(
+                                        x.TransactionType,
+                                        "Income",
+                                        StringComparison.OrdinalIgnoreCase)))
+                            </strong>
+
+                        </div>
+
+                        <div class="cashflow-row">
+
+                            <span>Average</span>
+
+                            <strong>
+                                @(GetAverageIncome() is decimal incomeAverage
+                                    ? $"₹{incomeAverage:N0}"
+                                    : "—")
+                            </strong>
+
+                            <strong>
+                                @(GetAverageExpense() is decimal expenseAverage
+                                    ? $"-₹{expenseAverage:N0}"
+                                    : "—")
+                            </strong>
+
+                        </div>
+
+                        <div class="cashflow-total">
+
+                            Net cash flow:
+
+                            <strong>
+                                ₹@DashboardData.SavingsThisMonth.ToString("N0")
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- FOOTER -->
+        <div class="dashboard-footer">
+
+            <i class="bi bi-shield-check"></i>
+
+            <span>
+                FinTrack keeps your personal financial information organized
+                and under your control.
+            </span>
+
+        </div>
+
+    </div>
 }
 
 @code
@@ -286,8 +1001,8 @@ else
 
             var user = authenticationState.User;
 
-            var claim = user.FindFirst(
-                ClaimTypes.NameIdentifier);
+            var claim =
+                user.FindFirst(ClaimTypes.NameIdentifier);
 
             if (claim == null ||
                 !int.TryParse(claim.Value, out var userId))
@@ -302,14 +1017,56 @@ else
                 await DashboardService
                     .GetDashboardAsync(userId);
         }
-        catch (Exception)
+        catch
         {
             ErrorMessage =
-                "Unable to load the dashboard right now.";
+                "Unable to load your financial information.";
         }
         finally
         {
             IsLoading = false;
         }
+    }
+
+    private static string FormatCompact(decimal value)
+    {
+        if (value >= 10000000)
+            return $"{value / 10000000:N1}Cr";
+
+        if (value >= 100000)
+            return $"{value / 100000:N1}L";
+
+        if (value >= 1000)
+            return $"{value / 1000:N1}K";
+
+        return value.ToString("N0");
+    }
+
+    private decimal? GetAverageIncome()
+    {
+        var count =
+            DashboardData.RecentTransactions.Count(
+                x => string.Equals(
+                    x.TransactionType,
+                    "Income",
+                    StringComparison.OrdinalIgnoreCase));
+
+        return count == 0
+            ? null
+            : DashboardData.CurrentMonth.TotalIncome / count;
+    }
+
+    private decimal? GetAverageExpense()
+    {
+        var count =
+            DashboardData.RecentTransactions.Count(
+                x => !string.Equals(
+                    x.TransactionType,
+                    "Income",
+                    StringComparison.OrdinalIgnoreCase));
+
+        return count == 0
+            ? null
+            : DashboardData.CurrentMonth.TotalExpense / count;
     }
 }
