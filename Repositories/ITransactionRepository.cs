@@ -4,38 +4,75 @@ namespace FinTrack.Repositories;
 
 public interface ITransactionRepository
 {
-    Task<IEnumerable<Transaction>> GetByUserAsync(int userId);
+    // =========================================================
+    // BASIC TRANSACTION OPERATIONS
+    // =========================================================
 
-    Task<Transaction?> GetByIdAsync(int transactionId, int userId);
+    Task<IEnumerable<Transaction>> GetByUserAsync(
+        int userId);
 
-    Task AddAsync(Transaction transaction);
+    Task<Transaction?> GetByIdAsync(
+        int transactionId,
+        int userId);
 
-    Task UpdateAsync(Transaction transaction);
+    Task AddAsync(
+        Transaction transaction);
 
-    Task DeleteAsync(int transactionId, int userId);
+    Task UpdateAsync(
+        Transaction transaction);
 
-    Task<TransactionSummary> GetSummaryAsync(int userId);
+    Task DeleteAsync(
+        int transactionId,
+        int userId);
+
+
+    // =========================================================
+    // ADMIN / GENERAL TRANSACTION OPERATIONS
+    // =========================================================
+
     Task<IEnumerable<Transaction>> GetAllAsync();
 
     Task<IEnumerable<Transaction>> SearchAsync(
-    int? userId,
-    DateTime? fromDate,
-    DateTime? toDate,
-    int? categoryId,
-    string? type);
+        int? userId,
+        DateTime? fromDate,
+        DateTime? toDate,
+        int? categoryId,
+        string? type);
+
+
+    // =========================================================
+    // PAGED SEARCH
+    // =========================================================
+
     Task<IEnumerable<Transaction>> SearchPagedAsync(
-    int? userId,
-    DateTime? fromDate,
-    DateTime? toDate,
-    int? categoryId,
-    string? type,
-    int page,
-    int pageSize);
+        int? userId,
+        DateTime? fromDate,
+        DateTime? toDate,
+        int? categoryId,
+        string? type,
+        int currentPage,
+        int pageSize);
 
     Task<int> GetSearchCountAsync(
-    int? userId,
-    DateTime? fromDate,
-    DateTime? toDate,
-    int? categoryId,
-    string? type);
+        int? userId,
+        DateTime? fromDate,
+        DateTime? toDate,
+        int? categoryId,
+        string? type);
+
+
+    // =========================================================
+    // SUMMARY
+    // =========================================================
+
+    Task<TransactionSummary> GetSummaryAsync(
+        int userId);
+
+
+    // =========================================================
+    // AVAILABLE BALANCE
+    // =========================================================
+
+    Task<decimal> GetAvailableBalanceAsync(
+        int userId);
 }

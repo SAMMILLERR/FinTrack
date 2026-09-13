@@ -1,0 +1,156 @@
+/* =========================================================
+   FINTRACK HORIZONTAL NAVBAR
+   ========================================================= */
+
+.navbar {
+    min-height: 70px;
+    background-color: #111827 !important;
+    border-bottom: 1px solid #2d3748;
+}
+
+.navbar .container {
+    max-width: 1400px;
+}
+
+
+/* =========================================================
+   BRAND
+   ========================================================= */
+
+.navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    color: #ffffff !important;
+
+    font-size: 21px;
+    font-weight: 700;
+
+    text-decoration: none;
+}
+
+.navbar-brand i {
+    color: #4f8cff;
+    font-size: 22px;
+}
+
+.navbar-brand:hover {
+    color: #ffffff !important;
+}
+
+
+/* =========================================================
+   NAVIGATION LINKS
+   ========================================================= */
+
+.navbar-nav {
+    align-items: center;
+}
+
+.navbar .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 10px 12px !important;
+
+    color: #cbd5e1 !important;
+
+    font-size: 14px;
+    font-weight: 500;
+
+    border-radius: 6px;
+
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
+}
+
+.navbar .nav-link i {
+    font-size: 15px;
+}
+
+.navbar .nav-link:hover {
+    color: #ffffff !important;
+    background-color: #1f2937;
+}
+
+
+/* =========================================================
+   ACTIVE-LOOKING NAVIGATION
+   ========================================================= */
+
+.navbar .nav-link:focus {
+    color: #ffffff !important;
+}
+
+
+/* =========================================================
+   USER INFORMATION
+   ========================================================= */
+
+.navbar .text-white {
+    color: #ffffff !important;
+}
+
+.navbar .text-light {
+    color: #9ca3af !important;
+}
+
+.navbar .fw-semibold {
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   LOGOUT
+   ========================================================= */
+
+.navbar .btn-link.nav-link.text-warning {
+    color: #fbbf24 !important;
+}
+
+.navbar .btn-link.nav-link.text-warning:hover {
+    color: #fcd34d !important;
+    background-color: #292524;
+}
+
+
+/* =========================================================
+   MOBILE MENU BUTTON
+   ========================================================= */
+
+.navbar-toggler {
+    border: 1px solid #4b5563;
+}
+
+.navbar-toggler:focus {
+    box-shadow: none;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 991.98px) {
+
+    .navbar .navbar-collapse {
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+
+    .navbar .nav-link {
+        width: 100%;
+    }
+
+    .navbar .navbar-nav {
+        align-items: stretch;
+    }
+
+    .navbar .text-end {
+        text-align: left !important;
+    }
+
+}

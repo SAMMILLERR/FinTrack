@@ -18,6 +18,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h1>Recurring Payments</h1>
+
         <p class="text-muted mb-0">
             Manage payments that are automatically added to your transactions.
         </p>
@@ -30,23 +31,68 @@
     </a>
 </div>
 
+@if (!string.IsNullOrEmpty(SuccessMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>
+
+        <strong>Success:</strong>
+        @SuccessMessage
+
+        <button type="button"
+                class="btn-close"
+                @onclick="ClearMessages">
+        </button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(WarningMessage))
+{
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+
+        <strong>Payment blocked:</strong>
+        @WarningMessage
+
+        <button type="button"
+                class="btn-close"
+                @onclick="ClearMessages">
+        </button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-x-circle-fill me-2"></i>
+
+        @ErrorMessage
+
+        <button type="button"
+                class="btn-close"
+                @onclick="ClearMessages">
+        </button>
+    </div>
+}
+
 @if (IsLoading)
 {
     <div class="text-center mt-5">
+
         <div class="spinner-border" role="status"></div>
-        <p class="mt-2">Loading recurring payments...</p>
-    </div>
-}
-else if (!string.IsNullOrEmpty(ErrorMessage))
-{
-    <div class="alert alert-danger">
-        @ErrorMessage
+
+        <p class="mt-2">
+            Loading recurring payments...
+        </p>
+
     </div>
 }
 else if (!RecurringPayments.Any())
 {
     <div class="card shadow-sm">
+
         <div class="card-body text-center py-5">
+
             <i class="bi bi-arrow-repeat display-4 text-muted"></i>
 
             <h4 class="mt-3">
@@ -62,12 +108,42 @@ else if (!RecurringPayments.Any())
                class="btn btn-primary">
                 Create Your First Recurring Payment
             </a>
+
         </div>
+
     </div>
 }
 else
 {
+    @if (BlockedPayments.Any())
+    {
+        <div class="alert alert-warning shadow-sm mb-4">
+
+            <div class="d-flex align-items-start">
+
+                <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+
+                <div>
+
+                    <h5 class="alert-heading mb-1">
+                        Recurring payment blocked by budget
+                    </h5>
+
+                    <p class="mb-0">
+                        One or more recurring payments could not be processed
+                        because executing them would exceed the current month's
+                        category budget.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+    }
+
     <div class="card shadow-sm">
+
         <div class="card-body p-0">
 
             <div class="table-responsive">
@@ -76,13 +152,23 @@ else
 
                     <thead>
                         <tr>
+
                             <th>Payment</th>
+
                             <th>Category</th>
+
                             <th>Amount</th>
+
                             <th>Frequency</th>
+
                             <th>Next Payment</th>
+
                             <th>Status</th>
-                            <th class="text-end">Actions</th>
+
+                            <th class="text-end">
+                                Actions
+                            </th>
+
                         </tr>
                     </thead>
 
@@ -90,64 +176,188 @@ else
 
                         @foreach (var payment in RecurringPayments)
                         {
-                            <tr>
+                            var isBlocked =
+                                IsPaymentBlocked(payment);
 
+                            <tr class="@(isBlocked ? "table-warning" : "")">
+
+                                <!-- PAYMENT -->
                                 <td>
+
                                     <strong>
                                         @payment.PaymentName
                                     </strong>
+
+                                    @if (isBlocked)
+                                    {
+                                        <div class="small text-warning-emphasis mt-1">
+
+                                            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+
+                                            Waiting for budget
+                                        </div>
+                                    }
+
                                 </td>
 
+                                <!-- CATEGORY -->
                                 <td>
                                     @payment.CategoryName
                                 </td>
 
+                                <!-- AMOUNT -->
                                 <td>
-                                    ₹@payment.Amount.ToString("N2")
+
+                                    <span class="fw-semibold">
+                                        ₹@payment.Amount.ToString("N2")
+                                    </span>
+
                                 </td>
 
+                                <!-- FREQUENCY -->
                                 <td>
+
                                     <span class="badge bg-secondary">
                                         @payment.Frequency
                                     </span>
+
                                 </td>
 
+                                <!-- NEXT PAYMENT -->
                                 <td>
-                                    @payment.NextPaymentDate.ToString("dd MMM yyyy")
+
+                                    @payment.NextPaymentDate.ToString(
+                                        "dd MMM yyyy")
+
+                                    @if (isBlocked)
+                                    {
+                                        <div class="small text-danger mt-1">
+
+                                            <i class="bi bi-lock-fill me-1"></i>
+
+                                            Payment not processed
+                                        </div>
+                                    }
+
                                 </td>
 
+                                <!-- STATUS -->
                                 <td>
-                                    @if (payment.IsActive)
+
+                                    @if (isBlocked)
+                                    {
+                                        <span class="badge bg-danger">
+
+                                            <i class="bi bi-shield-exclamation me-1"></i>
+
+                                            Blocked by Budget
+
+                                        </span>
+                                    }
+                                    else if (payment.IsActive)
                                     {
                                         <span class="badge bg-success">
+
+                                            <i class="bi bi-check-circle me-1"></i>
+
                                             Active
+
                                         </span>
                                     }
                                     else
                                     {
                                         <span class="badge bg-secondary">
+
+                                            <i class="bi bi-pause-circle me-1"></i>
+
                                             Paused
+
                                         </span>
                                     }
+
                                 </td>
 
+                                <!-- ACTIONS -->
                                 <td class="text-end">
 
-                                
-                                    <button class="btn btn-sm @(payment.IsActive
-                                        ? "btn-outline-warning"
-                                        : "btn-outline-success")"
+                                    <button type="button"
+                                            class="btn btn-sm @(payment.IsActive
+                                                ? "btn-outline-warning"
+                                                : "btn-outline-success") me-1"
+                                            disabled="@IsProcessing"
                                             @onclick="() => ToggleStatus(payment)">
+
                                         <i class="bi @(payment.IsActive
                                             ? "bi-pause"
                                             : "bi-play")"></i>
 
-                                        @(payment.IsActive ? "Pause" : "Resume")
+                                        @(payment.IsActive
+                                            ? "Pause"
+                                            : "Resume")
+
+                                    </button>
+
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger"
+                                            disabled="@IsProcessing"
+                                            @onclick="() => DeletePayment(payment)">
+
+                                        <i class="bi bi-trash"></i>
+
+                                        Delete
+
                                     </button>
 
                                 </td>
 
                             </tr>
+
+                            @if (isBlocked)
+                            {
+                                <tr class="table-warning">
+
+                                    <td colspan="7">
+
+                                        <div class="d-flex align-items-start">
+
+                                            <i class="bi bi-info-circle-fill fs-5 me-2"></i>
+
+                                            <div>
+
+                                                <strong>
+                                                    This payment was not executed.
+                                                </strong>
+
+                                                <div class="small mt-1">
+
+                                                    FinTrack prevented this recurring
+                                                    payment because processing it would
+                                                    exceed the budget assigned to
+                                                    <strong>
+                                                        @payment.CategoryName
+                                                    </strong>
+                                                    for the current month.
+
+                                                </div>
+
+                                                <div class="small mt-1">
+
+                                                    The recurring payment remains
+                                                    registered and will not advance
+                                                    until it can be processed within
+                                                    the budget.
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+                            }
+
                         }
 
                     </tbody>
@@ -157,18 +367,31 @@ else
             </div>
 
         </div>
+
     </div>
 }
 
-@code {
-
+@code
+{
     private List<RecurringPayment> RecurringPayments = new();
+
+    private readonly HashSet<int> BlockedPayments = new();
 
     private bool IsLoading = true;
 
+    private bool IsProcessing;
+
     private string? ErrorMessage;
 
+    private string? SuccessMessage;
+
+    private string? WarningMessage;
+
     private int UserId;
+
+    // ============================================================
+    // INITIALIZE
+    // ============================================================
 
     protected override async Task OnInitializedAsync()
     {
@@ -182,10 +405,13 @@ else
                 authState.User;
 
             var userIdClaim =
-                user.FindFirst(ClaimTypes.NameIdentifier);
+                user.FindFirst(
+                    ClaimTypes.NameIdentifier);
 
             if (userIdClaim == null ||
-                !int.TryParse(userIdClaim.Value, out UserId))
+                !int.TryParse(
+                    userIdClaim.Value,
+                    out UserId))
             {
                 ErrorMessage =
                     "Unable to identify the current user.";
@@ -208,6 +434,10 @@ else
         }
     }
 
+    // ============================================================
+    // LOAD PAYMENTS
+    // ============================================================
+
     private async Task LoadRecurringPayments()
     {
         var payments =
@@ -216,19 +446,100 @@ else
 
         RecurringPayments =
             payments.ToList();
+
+        DetectBlockedPayments();
     }
+
+    // ============================================================
+    // DETECT BLOCKED PAYMENTS
+    // ============================================================
+
+    private void DetectBlockedPayments()
+    {
+        BlockedPayments.Clear();
+
+        var today = DateTime.Today;
+
+        foreach (var payment in RecurringPayments)
+        {
+            /*
+             * A payment is considered blocked when:
+             *
+             * 1. It is active.
+             * 2. Its next payment date is due.
+             * 3. Its next payment date is in the current month.
+             *
+             * The backend deliberately leaves NextPaymentDate
+             * unchanged when the budget validation fails.
+             */
+
+            if (!payment.IsActive)
+            {
+                continue;
+            }
+
+            if (payment.NextPaymentDate.Date > today)
+            {
+                continue;
+            }
+
+            if (payment.NextPaymentDate.Year != today.Year ||
+                payment.NextPaymentDate.Month != today.Month)
+            {
+                continue;
+            }
+
+            BlockedPayments.Add(
+                payment.RecurringPaymentId);
+        }
+    }
+
+    // ============================================================
+    // CHECK BLOCKED
+    // ============================================================
+
+    private bool IsPaymentBlocked(
+        RecurringPayment payment)
+    {
+        return BlockedPayments.Contains(
+            payment.RecurringPaymentId);
+    }
+
+    // ============================================================
+    // TOGGLE STATUS
+    // ============================================================
 
     private async Task ToggleStatus(
         RecurringPayment payment)
     {
+        if (IsProcessing)
+        {
+            return;
+        }
+
         try
         {
+            ClearMessages();
+
+            IsProcessing = true;
+
             await RecurringPaymentService
                 .ToggleStatusAsync(
                     payment.RecurringPaymentId,
                     UserId);
 
             await LoadRecurringPayments();
+
+            if (payment.IsActive)
+            {
+                SuccessMessage =
+                    $"{payment.PaymentName} has been paused.";
+            }
+            else
+            {
+                SuccessMessage =
+                    $"{payment.PaymentName} has been resumed.";
+            }
         }
         catch (Exception ex)
         {
@@ -237,5 +548,61 @@ else
 
             Console.WriteLine(ex);
         }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
+
+    // ============================================================
+    // DELETE
+    // ============================================================
+
+    private async Task DeletePayment(
+        RecurringPayment payment)
+    {
+        if (IsProcessing)
+        {
+            return;
+        }
+
+        try
+        {
+            ClearMessages();
+
+            IsProcessing = true;
+
+            await RecurringPaymentService
+                .DeleteRecurringPaymentAsync(
+                    payment.RecurringPaymentId,
+                    UserId);
+
+            await LoadRecurringPayments();
+
+            SuccessMessage =
+                $"{payment.PaymentName} was deleted.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage =
+                "Unable to delete the recurring payment.";
+
+            Console.WriteLine(ex);
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
+
+    // ============================================================
+    // CLEAR MESSAGES
+    // ============================================================
+
+    private void ClearMessages()
+    {
+        SuccessMessage = null;
+        WarningMessage = null;
+        ErrorMessage = null;
     }
 }

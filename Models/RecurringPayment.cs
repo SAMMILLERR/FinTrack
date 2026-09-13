@@ -39,4 +39,5 @@ public class RecurringPayment
 
     public string CategoryName { get; set; } = "";
     public string TransactionType { get; set; } = "";
+    public int ToUserId { get; set; }
 }

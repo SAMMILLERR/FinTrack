@@ -37,12 +37,14 @@ public class BudgetService : IBudgetService
             userId);
     }
 
-    public async Task AddBudgetAsync(Budget budget)
+    public async Task AddBudgetAsync(
+        Budget budget)
     {
         await _budgetRepository.AddAsync(budget);
     }
 
-    public async Task UpdateBudgetAsync(Budget budget)
+    public async Task UpdateBudgetAsync(
+        Budget budget)
     {
         await _budgetRepository.UpdateAsync(budget);
     }

@@ -20,16 +20,27 @@ public class TransactionService : ITransactionService
         _budgetRepository = budgetRepository;
     }
 
+
+    // =========================================================
+    // CATEGORIES
+    // =========================================================
+
     public async Task<IEnumerable<Category>> GetCategoriesAsync()
     {
         return await _categoryRepository.GetAllAsync();
     }
+
 
     public async Task<IEnumerable<Category>> GetCategoriesByTypeAsync(
         string type)
     {
         return await _categoryRepository.GetByTypeAsync(type);
     }
+
+
+    // =========================================================
+    // GET TRANSACTION
+    // =========================================================
 
     public async Task<Transaction?> GetTransactionAsync(
         int transactionId,
@@ -40,26 +51,102 @@ public class TransactionService : ITransactionService
             userId);
     }
 
+
+    // =========================================================
+    // ADD
+    // =========================================================
+
     public async Task AddTransactionAsync(
         Transaction transaction)
     {
-        await _transactionRepository.AddAsync(transaction);
+        if (transaction.UserId <= 0)
+        {
+            throw new InvalidOperationException(
+                "Invalid user.");
+        }
+
+        if (transaction.CategoryId <= 0)
+        {
+            throw new InvalidOperationException(
+                "Please select a valid category.");
+        }
+
+        if (transaction.Amount <= 0)
+        {
+            throw new InvalidOperationException(
+                "Transaction amount must be greater than zero.");
+        }
+
+        await _transactionRepository.AddAsync(
+            transaction);
     }
+
+
+    // =========================================================
+    // UPDATE
+    // =========================================================
 
     public async Task UpdateTransactionAsync(
         Transaction transaction)
     {
-        await _transactionRepository.UpdateAsync(transaction);
+        if (transaction.UserId <= 0)
+        {
+            throw new InvalidOperationException(
+                "Invalid user.");
+        }
+
+        if (transaction.TransactionId <= 0)
+        {
+            throw new InvalidOperationException(
+                "Invalid transaction.");
+        }
+
+        if (transaction.CategoryId <= 0)
+        {
+            throw new InvalidOperationException(
+                "Please select a valid category.");
+        }
+
+        if (transaction.Amount <= 0)
+        {
+            throw new InvalidOperationException(
+                "Transaction amount must be greater than zero.");
+        }
+
+        await _transactionRepository.UpdateAsync(
+            transaction);
     }
+
+
+    // =========================================================
+    // DELETE
+    // =========================================================
 
     public async Task DeleteTransactionAsync(
         int transactionId,
         int userId)
     {
+        if (transactionId <= 0)
+        {
+            throw new InvalidOperationException(
+                "Invalid transaction.");
+        }
+
+        if (userId <= 0)
+        {
+            throw new InvalidOperationException(
+                "Invalid user.");
+        }
+
         await _transactionRepository.DeleteAsync(
             transactionId,
             userId);
     }
+
+
+    // =========================================================
+    // BUDGET
+    // =========================================================
 
     public async Task<Budget?> GetBudgetForTransactionAsync(
         Transaction transaction)
@@ -81,14 +168,39 @@ public class TransactionService : ITransactionService
             b.BudgetYear == transaction.TransactionDate.Year);
     }
 
+
     public async Task<decimal> GetCurrentCategorySpendingAsync(
         Transaction transaction)
     {
         var budget =
-            await GetBudgetForTransactionAsync(transaction);
+            await GetBudgetForTransactionAsync(
+                transaction);
 
-        return budget?.SpentAmount ?? 0;
+        return budget?.SpentAmount ?? 0m;
     }
+
+
+    // =========================================================
+    // AVAILABLE BALANCE
+    // =========================================================
+
+    public async Task<decimal> GetAvailableBalanceAsync(
+        int userId)
+    {
+        if (userId <= 0)
+        {
+            throw new InvalidOperationException(
+                "Invalid user.");
+        }
+
+        return await _transactionRepository
+            .GetAvailableBalanceAsync(userId);
+    }
+
+
+    // =========================================================
+    // PAGED TRANSACTIONS
+    // =========================================================
 
     public async Task<TransactionPageResult> GetTransactionsAsync(
         int? userId,
@@ -104,6 +216,11 @@ public class TransactionService : ITransactionService
             currentPage = 1;
         }
 
+        if (pageSize <= 0)
+        {
+            pageSize = 20;
+        }
+
         var totalRecords =
             await _transactionRepository.GetSearchCountAsync(
                 userId,
@@ -116,7 +233,8 @@ public class TransactionService : ITransactionService
             (int)Math.Ceiling(
                 totalRecords / (double)pageSize);
 
-        if (totalPages > 0 && currentPage > totalPages)
+        if (totalPages > 0 &&
+            currentPage > totalPages)
         {
             currentPage = totalPages;
         }
@@ -137,7 +255,8 @@ public class TransactionService : ITransactionService
         {
             summary =
                 await _transactionRepository
-                    .GetSummaryAsync(userId.Value);
+                    .GetSummaryAsync(
+                        userId.Value);
         }
 
         return new TransactionPageResult

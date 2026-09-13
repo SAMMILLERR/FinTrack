@@ -1,0 +1,475 @@
+@page "/payments/send"
+
+@using System.Security.Claims
+@using FinTrack.Models
+@using FinTrack.Models.Payments
+@using FinTrack.Services.Interfaces
+@using Microsoft.AspNetCore.Components.Authorization
+
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@inject IPaymentService PaymentService
+@inject ITransactionService TransactionService
+@inject IUserService UserService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Send Payment</PageTitle>
+
+<div class="container mt-4">
+
+    <div class="row justify-content-center">
+
+        <div class="col-md-7">
+
+            <div class="card shadow">
+
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        Send Payment
+                    </h4>
+                </div>
+
+                <div class="card-body">
+
+                    @if (IsLoading)
+                    {
+                        <div class="text-center py-4">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">
+                                    Loading...
+                                </span>
+                            </div>
+
+                            <p class="mt-2">
+                                Loading payment form...
+                            </p>
+                        </div>
+                    }
+                    else
+                    {
+                        @if (!string.IsNullOrEmpty(ErrorMessage))
+                        {
+                            <div class="alert alert-danger">
+                                @ErrorMessage
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(SuccessMessage))
+                        {
+                            <div class="alert alert-success">
+                                @SuccessMessage
+                            </div>
+                        }
+
+                        <EditForm Model="Request"
+                                  OnValidSubmit="ProcessPayment">
+
+                            <DataAnnotationsValidator />
+
+                            <!-- Receiver -->
+                            <div class="mb-3">
+
+                                <label class="form-label">
+                                    Receiver
+                                </label>
+
+                                <InputSelect class="form-select"
+                                             @bind-Value="Request.ToUserId">
+
+                                    <option value="0">
+                                        Select receiver
+                                    </option>
+
+                                    @foreach (var user in OtherUsers)
+                                    {
+                                        <option value="@user.UserId">
+                                            @user.FirstName @user.LastName
+                                        </option>
+                                    }
+
+                                </InputSelect>
+
+                                @if (OtherUsers.Count == 0)
+                                {
+                                    <div class="form-text text-danger">
+                                        No other active users are available.
+                                    </div>
+                                }
+
+                            </div>
+
+
+                            <!-- Amount -->
+                            <div class="mb-3">
+
+                                <label class="form-label">
+                                    Amount
+                                </label>
+
+                                <InputNumber class="form-control"
+                                             @bind-Value="Request.Amount" />
+
+                                <ValidationMessage For="@(() => Request.Amount)" />
+
+                            </div>
+
+
+                            <!-- Payment Date -->
+                            <div class="mb-3">
+
+                                <label class="form-label">
+                                    Payment Date
+                                </label>
+
+                                <InputDate class="form-control"
+                                           @bind-Value="Request.PaymentDate" />
+
+                                <ValidationMessage For="@(() => Request.PaymentDate)" />
+
+                            </div>
+
+
+                            <!-- Payment Type -->
+                            <div class="mb-3">
+
+                                <label class="form-label">
+                                    Payment Type
+                                </label>
+
+                                <InputSelect class="form-select"
+                                             @bind-Value="Request.PaymentType">
+
+                                    <option value="@PaymentType.Manual">
+                                        Manual
+                                    </option>
+
+                                    <option value="@PaymentType.Recurring">
+                                        Recurring
+                                    </option>
+
+                                </InputSelect>
+
+                            </div>
+
+
+                            <!-- Expense Category -->
+                            <div class="mb-3">
+
+                                <label class="form-label">
+                                    Expense Category
+                                </label>
+
+                                <InputSelect class="form-select"
+                                             @bind-Value="Request.ExpenseCategoryId">
+
+                                    <option value="0">
+                                        Select expense category
+                                    </option>
+
+                                    @foreach (var category in ExpenseCategories)
+                                    {
+                                        <option value="@category.CategoryId">
+                                            @category.CategoryName
+                                        </option>
+                                    }
+
+                                </InputSelect>
+
+                                <ValidationMessage For="@(() => Request.ExpenseCategoryId)" />
+
+                                <div class="form-text">
+                                    This category will be used for the sender's transaction.
+                                </div>
+
+                            </div>
+
+
+                            <!-- Description -->
+                            <div class="mb-3">
+
+                                <label class="form-label">
+                                    Description
+                                </label>
+
+                                <InputText class="form-control"
+                                           @bind-Value="Request.Description" />
+
+                                <ValidationMessage For="@(() => Request.Description)" />
+
+                            </div>
+
+
+                            <!-- Buttons -->
+                            <div class="d-flex gap-2">
+
+                                <button type="submit"
+                                        class="btn btn-primary"
+                                        disabled="@IsProcessing">
+
+                                    @if (IsProcessing)
+                                    {
+                                        <span>
+                                            <span class="spinner-border spinner-border-sm me-1"
+                                                  role="status"
+                                                  aria-hidden="true">
+                                            </span>
+
+                                            Processing...
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span>
+                                            Send Payment
+                                        </span>
+                                    }
+
+                                </button>
+
+
+                                <button type="button"
+                                        class="btn btn-secondary"
+                                        @onclick="GoBack"
+                                        disabled="@IsProcessing">
+
+                                    Cancel
+
+                                </button>
+
+                            </div>
+
+                        </EditForm>
+                    }
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@code {
+
+    private PaymentRequest Request { get; set; } = new()
+    {
+        PaymentDate = DateTime.Now,
+        PaymentType = PaymentType.Manual
+    };
+
+    private List<User> OtherUsers { get; set; } = new();
+
+    private List<Category> ExpenseCategories { get; set; } = new();
+
+    private bool IsProcessing { get; set; }
+
+    private bool IsLoading { get; set; } = true;
+
+    private string? ErrorMessage { get; set; }
+
+    private string? SuccessMessage { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            IsLoading = true;
+
+            ErrorMessage = null;
+            SuccessMessage = null;
+
+
+            // ---------------------------------------------------------
+            // Get currently logged-in user
+            // ---------------------------------------------------------
+
+            var authState =
+                await AuthenticationStateProvider
+                    .GetAuthenticationStateAsync();
+
+            var currentUser = authState.User;
+
+            var userIdClaim =
+                currentUser.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+
+            if (!int.TryParse(userIdClaim, out int currentUserId))
+            {
+                ErrorMessage =
+                    "Unable to determine the current user.";
+
+                return;
+            }
+
+
+            // ---------------------------------------------------------
+            // Set sender
+            // ---------------------------------------------------------
+
+            Request.FromUserId = currentUserId;
+
+
+            // ---------------------------------------------------------
+            // Load active users
+            // Exclude the currently logged-in user
+            // ---------------------------------------------------------
+
+            var users =
+                await UserService.GetUsersAsync();
+
+            OtherUsers = users
+                .Where(u =>
+                    u.IsActive &&
+                    u.UserId != currentUserId)
+                .OrderBy(u => u.FirstName)
+                .ThenBy(u => u.LastName)
+                .ToList();
+
+
+            // ---------------------------------------------------------
+            // Load active expense categories
+            // ---------------------------------------------------------
+
+            var categories =
+                await TransactionService
+                    .GetCategoriesByTypeAsync("Expense");
+
+            ExpenseCategories = categories
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.CategoryName)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage =
+                $"Unable to load payment form: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+
+    private async Task ProcessPayment()
+    {
+        ErrorMessage = null;
+        SuccessMessage = null;
+
+
+        // ---------------------------------------------------------
+        // Receiver validation
+        // ---------------------------------------------------------
+
+        if (Request.ToUserId <= 0)
+        {
+            ErrorMessage =
+                "Please select a receiver.";
+
+            return;
+        }
+
+
+        // ---------------------------------------------------------
+        // Prevent self-payment
+        // ---------------------------------------------------------
+
+        if (Request.ToUserId == Request.FromUserId)
+        {
+            ErrorMessage =
+                "You cannot send a payment to yourself.";
+
+            return;
+        }
+
+
+        // ---------------------------------------------------------
+        // Amount validation
+        // ---------------------------------------------------------
+
+        if (Request.Amount <= 0)
+        {
+            ErrorMessage =
+                "Amount must be greater than zero.";
+
+            return;
+        }
+
+
+        // ---------------------------------------------------------
+        // Expense category validation
+        // ---------------------------------------------------------
+
+        if (Request.ExpenseCategoryId <= 0)
+        {
+            ErrorMessage =
+                "Please select an expense category.";
+
+            return;
+        }
+
+
+        IsProcessing = true;
+
+
+        try
+        {
+            // -----------------------------------------------------
+            // Process payment
+            // -----------------------------------------------------
+
+            var result =
+                await PaymentService
+                    .ProcessPaymentAsync(Request);
+
+
+            if (result.Success)
+            {
+                SuccessMessage =
+                    result.Message ??
+                    "Payment completed successfully.";
+
+
+                // -------------------------------------------------
+                // Reset form after successful payment
+                // Keep the current logged-in user as sender
+                // -------------------------------------------------
+
+                var senderId = Request.FromUserId;
+
+                Request = new PaymentRequest
+                {
+                    FromUserId = senderId,
+                    PaymentDate = DateTime.Now,
+                    PaymentType = PaymentType.Manual
+                };
+            }
+            else
+            {
+                ErrorMessage =
+                    result.Message ??
+                    "Payment failed.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage =
+                $"Payment failed: {ex.Message}";
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
+
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/transactions");
+    }
+}

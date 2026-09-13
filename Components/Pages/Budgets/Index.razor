@@ -1,13 +1,15 @@
 @page "/budgets"
 @rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
 
-@attribute [Authorize(Roles = "User")]
-
 @using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
 @using FinTrack.Models
 @using FinTrack.Services.Interfaces
 
+@attribute [Authorize(Roles = "User")]
+
 @inject IBudgetService BudgetService
+@inject IBudgetRecommendationService BudgetRecommendationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
 
@@ -88,8 +90,7 @@ else
                         var percentage =
                             item.LimitAmount == 0
                                 ? 0
-                                : (item.SpentAmount /
-                                   item.LimitAmount) * 100;
+                                : (item.SpentAmount / item.LimitAmount) * 100;
 
                         var progressWidth =
                             Math.Min(percentage, 100);
@@ -117,7 +118,6 @@ else
                             </td>
 
                             <td>
-
                                 @if (item.RemainingAmount >= 0)
                                 {
                                     <span class="text-success fw-bold">
@@ -131,7 +131,6 @@ else
                                         @Math.Abs(item.RemainingAmount).ToString("N2")
                                     </span>
                                 }
-
                             </td>
 
                             <td>
@@ -200,6 +199,90 @@ else
                             </td>
 
                         </tr>
+
+                        @if (Recommendations.TryGetValue(
+                            item.BudgetId,
+                            out var recommendation)
+                            && recommendation.HasRecommendation)
+                        {
+                            <tr>
+
+                                <td colspan="8" class="p-0">
+
+                                    <div class="alert alert-warning rounded-0 mb-0 border-start border-4 border-warning">
+
+                                        <div class="d-flex justify-content-between align-items-start gap-3">
+
+                                            <div>
+
+                                                <div class="fw-bold mb-2">
+
+                                                    <i class="bi bi-graph-up-arrow me-1"></i>
+
+                                                    Budget Recommendation
+
+                                                </div>
+
+                                                <div>
+                                                    @recommendation.Message
+                                                </div>
+
+                                                <div class="mt-2 small">
+
+                                                    <strong>
+                                                        Current budget:
+                                                    </strong>
+
+                                                    ₹ @recommendation.CurrentBudget.ToString("N0")
+
+                                                    <span class="mx-2">
+                                                        →
+                                                    </span>
+
+                                                    <strong>
+                                                        Suggested budget:
+                                                    </strong>
+
+                                                    ₹ @recommendation.SuggestedBudget.ToString("N0")
+
+                                                </div>
+
+                                            </div>
+
+                                            <div class="flex-shrink-0">
+
+                                                <button type="button"
+                                                        class="btn btn-warning btn-sm fw-bold"
+                                                        disabled="@IsUpdatingRecommendation"
+                                                        @onclick="() => ApplyRecommendation(item.BudgetId)">
+
+                                                    @if (IsUpdatingRecommendation)
+                                                    {
+                                                        <span>
+                                                            Updating...
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>
+                                                            <i class="bi bi-check-circle me-1"></i>
+                                                            Update Budget
+                                                        </span>
+                                                    }
+
+                                                </button>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+                        }
+
                     }
 
                 </tbody>
@@ -215,7 +298,12 @@ else
     private IEnumerable<Budget> Budgets =
         new List<Budget>();
 
+    private readonly Dictionary<int, BudgetRecommendation>
+        Recommendations = new();
+
     private bool IsLoading = true;
+
+    private bool IsUpdatingRecommendation;
 
     private string? ErrorMessage;
 
@@ -243,6 +331,8 @@ else
             }
 
             await LoadBudgets();
+
+            await LoadRecommendations();
         }
         catch (Exception)
         {
@@ -260,6 +350,66 @@ else
         Budgets =
             await BudgetService
                 .GetBudgetsAsync(UserId);
+    }
+
+    private async Task LoadRecommendations()
+    {
+        Recommendations.Clear();
+
+        foreach (var budget in Budgets)
+        {
+            try
+            {
+                var recommendation =
+                    await BudgetRecommendationService
+                        .GetRecommendationAsync(
+                            UserId,
+                            budget);
+
+                Recommendations[budget.BudgetId] =
+                    recommendation;
+            }
+            catch
+            {
+                // Recommendation failure should not
+                // prevent the budget page from loading.
+            }
+        }
+    }
+
+    private async Task ApplyRecommendation(int budgetId)
+    {
+        if (IsUpdatingRecommendation)
+        {
+            return;
+        }
+
+        try
+        {
+            IsUpdatingRecommendation = true;
+
+            var updated =
+                await BudgetRecommendationService
+                    .ApplyRecommendationAsync(
+                        UserId,
+                        budgetId);
+
+            if (updated)
+            {
+                await LoadBudgets();
+
+                await LoadRecommendations();
+            }
+        }
+        catch (Exception)
+        {
+            ErrorMessage =
+                "Unable to update the budget recommendation.";
+        }
+        finally
+        {
+            IsUpdatingRecommendation = false;
+        }
     }
 
     private static string GetMonthName(

@@ -1,5 +1,4 @@
 @page "/recurring-payments/create"
-@rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
 
 @using System.Security.Claims
 @using FinTrack.Models
@@ -11,6 +10,7 @@
 
 @inject IRecurringPaymentService RecurringPaymentService
 @inject ICategoryService CategoryService
+@inject IUserService UserService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
 
@@ -21,6 +21,7 @@
     <div class="col-md-8 col-lg-7">
 
         <div class="d-flex align-items-center mb-4">
+
             <a href="/recurring-payments"
                class="btn btn-outline-secondary me-3">
                 <i class="bi bi-arrow-left"></i>
@@ -28,10 +29,12 @@
 
             <div>
                 <h1 class="mb-1">Create Recurring Payment</h1>
+
                 <p class="text-muted mb-0">
-                    Set up an automatic income or expense schedule.
+                    Set up an automatic recurring transfer to another FinTrack user.
                 </p>
             </div>
+
         </div>
 
         @if (!string.IsNullOrEmpty(ErrorMessage))
@@ -51,24 +54,33 @@
 
                     <DataAnnotationsValidator />
 
+                    <!-- PAYMENT NAME -->
+
                     <div class="mb-3">
+
                         <label class="form-label">
                             Payment Name
                         </label>
 
                         <InputText class="form-control"
                                    @bind-Value="RecurringPayment.PaymentName"
-                                   placeholder="e.g. Salary, Netflix Subscription" />
+                                   placeholder="e.g. Monthly Gym Payment" />
 
                         <ValidationMessage For="@(() => RecurringPayment.PaymentName)" />
+
                     </div>
 
+
+                    <!-- AMOUNT -->
+
                     <div class="mb-3">
+
                         <label class="form-label">
                             Amount
                         </label>
 
                         <div class="input-group">
+
                             <span class="input-group-text">
                                 ₹
                             </span>
@@ -76,28 +88,67 @@
                             <InputNumber class="form-control"
                                          @bind-Value="RecurringPayment.Amount"
                                          step="0.01" />
+
                         </div>
 
                         <ValidationMessage For="@(() => RecurringPayment.Amount)" />
+
                     </div>
 
+
+                    <!-- RECEIVER -->
+
                     <div class="mb-3">
+
                         <label class="form-label">
-                            Category
+                            Send To
+                        </label>
+
+                        <InputSelect class="form-select"
+                                     @bind-Value="RecurringPayment.ToUserId">
+
+                            <option value="0">
+                                -- Select Receiver --
+                            </option>
+
+                            @foreach (var user in Users)
+                            {
+                                <option value="@user.UserId">
+                                    @user.FirstName @user.LastName
+                                    (@user.Email)
+                                </option>
+                            }
+
+                        </InputSelect>
+
+                        <ValidationMessage For="@(() => RecurringPayment.ToUserId)" />
+
+                        <div class="form-text">
+                            Select the FinTrack user who will receive this recurring payment.
+                        </div>
+
+                    </div>
+
+
+                    <!-- EXPENSE CATEGORY -->
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+                            Expense Category
                         </label>
 
                         <InputSelect class="form-select"
                                      @bind-Value="RecurringPayment.CategoryId">
 
                             <option value="0">
-                                -- Select Category --
+                                -- Select Expense Category --
                             </option>
 
                             @foreach (var category in Categories)
                             {
                                 <option value="@category.CategoryId">
                                     @category.CategoryName
-                                    (@category.CategoryTypeName)
                                 </option>
                             }
 
@@ -106,12 +157,16 @@
                         <ValidationMessage For="@(() => RecurringPayment.CategoryId)" />
 
                         <div class="form-text">
-                            Select an Income category for salary or other income,
-                            or an Expense category for recurring expenses.
+                            This category records the transfer as an expense for the sender.
                         </div>
+
                     </div>
 
+
+                    <!-- FREQUENCY -->
+
                     <div class="mb-3">
+
                         <label class="form-label">
                             Frequency
                         </label>
@@ -132,7 +187,11 @@
                             </option>
 
                         </InputSelect>
+
                     </div>
+
+
+                    <!-- DATES -->
 
                     <div class="row">
 
@@ -149,13 +208,17 @@
 
                         </div>
 
+
                         <div class="col-md-6 mb-3">
 
                             <label class="form-label">
+
                                 End Date
+
                                 <span class="text-muted">
                                     (Optional)
                                 </span>
+
                             </label>
 
                             <InputDate class="form-control"
@@ -167,23 +230,34 @@
 
                     </div>
 
+
+                    <!-- INFORMATION -->
+
                     <div class="alert alert-info">
 
-                        <i class="bi bi-info-circle me-2"></i>
+                        <i class="bi bi-arrow-left-right me-2"></i>
 
-                        FinTrack will automatically create a normal
-                        transaction whenever this schedule becomes due.
-                        The transaction will be marked as
-                        <strong>Income</strong> or <strong>Expense</strong>
-                        based on the selected category.
+                        FinTrack will automatically process this transfer whenever it becomes due.
+
+                        <br />
+
+                        <strong>
+                            Your account will be charged as an Expense,
+                            and the receiver will receive it as Income.
+                        </strong>
 
                     </div>
+
+
+                    <!-- ACTIONS -->
 
                     <div class="d-flex justify-content-end gap-2">
 
                         <a href="/recurring-payments"
                            class="btn btn-outline-secondary">
+
                             Cancel
+
                         </a>
 
                         <button type="submit"
@@ -193,12 +267,18 @@
                             @if (IsSaving)
                             {
                                 <span class="spinner-border spinner-border-sm me-2"></span>
-                                <span>Creating...</span>
+
+                                <span>
+                                    Creating...
+                                </span>
                             }
                             else
                             {
-                                <i class="bi bi-check-lg me-1"></i>
-                                <span>Create Recurring Payment</span>
+                                <i class="bi bi-arrow-repeat me-1"></i>
+
+                                <span>
+                                    Create Recurring Payment
+                                </span>
                             }
 
                         </button>
@@ -215,22 +295,27 @@
 
 </div>
 
+
 @code {
 
     private RecurringPayment RecurringPayment = new()
     {
         Frequency = "Monthly",
         StartDate = DateTime.Today,
-        NextPaymentDate = DateTime.Today
+        NextPaymentDate = DateTime.Today,
+        IsActive = true
     };
 
     private List<Category> Categories = new();
+
+    private List<User> Users = new();
 
     private bool IsSaving;
 
     private string? ErrorMessage;
 
     private int UserId;
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -254,40 +339,106 @@
                 return;
             }
 
+
+            // =====================================================
+            // LOAD EXPENSE CATEGORIES
+            // =====================================================
+
             var categories =
                 await CategoryService
                     .GetCategoriesAsync();
 
-            // IMPORTANT:
-            // Load BOTH Income and Expense categories.
             Categories =
                 categories
-                    .Where(c => c.IsActive)
-                    .OrderBy(c => c.CategoryTypeName)
-                    .ThenBy(c => c.CategoryName)
+                    .Where(c =>
+                        c.IsActive &&
+                        c.CategoryTypeName == "Expense")
+                    .OrderBy(c => c.CategoryName)
+                    .ToList();
+
+
+            // =====================================================
+            // LOAD RECEIVERS
+            // =====================================================
+
+            var allUsers =
+                await UserService
+                    .GetUsersAsync();
+
+            Users =
+                allUsers
+                    .Where(u =>
+                        u.IsActive &&
+                        u.UserId != UserId)
+                    .OrderBy(u => u.FirstName)
+                    .ThenBy(u => u.LastName)
                     .ToList();
         }
         catch (Exception ex)
         {
             ErrorMessage =
-                "Unable to load categories.";
+                "Unable to load the recurring payment form.";
 
             Console.WriteLine(ex);
         }
     }
 
+
     private async Task CreateRecurringPayment()
     {
         ErrorMessage = null;
+
         IsSaving = true;
 
         try
         {
-            if (RecurringPayment.CategoryId <= 0)
+            // =====================================================
+            // VALIDATE RECEIVER
+            // =====================================================
+
+            if (RecurringPayment.ToUserId <= 0)
             {
-                ErrorMessage = "Please select a category.";
+                ErrorMessage =
+                    "Please select a receiver.";
+
                 return;
             }
+
+
+            if (RecurringPayment.ToUserId == UserId)
+            {
+                ErrorMessage =
+                    "You cannot create a recurring payment to yourself.";
+
+                return;
+            }
+
+
+            var receiver =
+                Users.FirstOrDefault(
+                    u => u.UserId == RecurringPayment.ToUserId);
+
+            if (receiver == null)
+            {
+                ErrorMessage =
+                    "The selected receiver could not be found.";
+
+                return;
+            }
+
+
+            // =====================================================
+            // VALIDATE CATEGORY
+            // =====================================================
+
+            if (RecurringPayment.CategoryId <= 0)
+            {
+                ErrorMessage =
+                    "Please select an expense category.";
+
+                return;
+            }
+
 
             var selectedCategory =
                 Categories.FirstOrDefault(
@@ -295,19 +446,69 @@
 
             if (selectedCategory == null)
             {
-                ErrorMessage = "Selected category could not be found.";
+                ErrorMessage =
+                    "The selected expense category could not be found.";
+
                 return;
             }
 
-            RecurringPayment.UserId = UserId;
 
-            // Category determines whether this is Income or Expense.
+            // =====================================================
+            // VALIDATE AMOUNT
+            // =====================================================
+
+            if (RecurringPayment.Amount <= 0)
+            {
+                ErrorMessage =
+                    "The payment amount must be greater than zero.";
+
+                return;
+            }
+
+
+            // =====================================================
+            // VALIDATE DATES
+            // =====================================================
+
+            if (RecurringPayment.EndDate.HasValue &&
+                RecurringPayment.EndDate.Value.Date <
+                RecurringPayment.StartDate.Date)
+            {
+                ErrorMessage =
+                    "End date cannot be before the start date.";
+
+                return;
+            }
+
+
+            // =====================================================
+            // SET SYSTEM VALUES
+            // =====================================================
+
+            RecurringPayment.UserId =
+                UserId;
+
+            RecurringPayment.StartDate =
+                RecurringPayment.StartDate.Date;
+
+            RecurringPayment.NextPaymentDate =
+                RecurringPayment.StartDate;
+
             RecurringPayment.TransactionType =
-                selectedCategory.CategoryTypeName;
+                "Expense";
+
+            RecurringPayment.IsActive =
+                true;
+
+
+            // =====================================================
+            // SAVE
+            // =====================================================
 
             await RecurringPaymentService
                 .AddRecurringPaymentAsync(
                     RecurringPayment);
+
 
             Navigation.NavigateTo(
                 "/recurring-payments");
@@ -315,7 +516,7 @@
         catch (Exception ex)
         {
             ErrorMessage =
-                "Unable to create the recurring payment.";
+                ex.Message;
 
             Console.WriteLine(ex);
         }
@@ -325,1191 +526,3 @@
         }
     }
 }
-<style>
-
-    /* =========================================================
-       FINTRACK DASHBOARD - FORCE CARD LAYOUT
-       ========================================================= */
-
-    .fin-dashboard {
-        width: 100%;
-        max-width: 1250px;
-        margin: 0 auto;
-        padding: 25px;
-        background: #111315;
-        color: #e8ebef;
-        min-height: calc(100vh - 55px);
-        box-sizing: border-box;
-    }
-
-    /* ---------------------------------------------------------
-       HEADER
-       --------------------------------------------------------- */
-
-    .dashboard-topbar {
-        width: 100%;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 15px;
-    }
-
-    .dashboard-title {
-        color: #f2f4f7;
-        font-size: 20px;
-        font-weight: 700;
-    }
-
-    .dashboard-subtitle {
-        color: #737b86;
-        font-size: 10px;
-        margin-top: 3px;
-    }
-
-    .dashboard-add {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 8px 12px;
-        background: #2188ff;
-        color: white !important;
-        border-radius: 6px;
-        text-decoration: none;
-        font-size: 10px;
-        font-weight: 700;
-    }
-
-
-    /* =========================================================
-       COMMON CARD
-       ========================================================= */
-
-    .finance-card {
-        display: block;
-        width: 100%;
-        box-sizing: border-box;
-
-        background: #202328 !important;
-
-        border: 1px solid #343940 !important;
-
-        border-radius: 8px !important;
-
-        padding: 15px !important;
-
-        color: #e8ebef;
-
-        box-shadow:
-            0 3px 12px rgba(0,0,0,.25);
-
-        overflow: hidden;
-    }
-
-    .card-title-row {
-        width: 100%;
-        display: flex !important;
-        justify-content: space-between !important;
-        align-items: flex-start !important;
-        margin-bottom: 13px;
-    }
-
-    .card-title {
-        display: flex !important;
-        align-items: center !important;
-        gap: 6px !important;
-
-        color: #edf0f4 !important;
-
-        font-size: 11px !important;
-        font-weight: 700 !important;
-    }
-
-    .card-title i {
-        color: #8e97a3;
-    }
-
-    .card-description {
-        color: #737c87 !important;
-        font-size: 8px !important;
-        margin-top: 3px;
-    }
-
-
-    /* =========================================================
-       TOP THREE CARDS
-       ========================================================= */
-
-    .top-card-grid {
-        width: 100%;
-
-        display: grid !important;
-
-        grid-template-columns:
-            1fr
-            1.15fr
-            1.15fr !important;
-
-        gap: 10px !important;
-
-        margin-bottom: 10px;
-    }
-
-    .summary-card,
-    .month-card {
-        min-height: 135px;
-    }
-
-
-    /* =========================================================
-       SUMMARY
-       ========================================================= */
-
-    .summary-line {
-        display: flex !important;
-
-        justify-content: space-between !important;
-
-        align-items: center;
-
-        padding: 4px 0;
-
-        border-bottom: 1px solid #30343a;
-
-        color: #aeb6c0;
-
-        font-size: 9px;
-    }
-
-    .summary-line strong {
-        font-size: 10px;
-    }
-
-    .summary-total {
-        display: flex !important;
-
-        justify-content: space-between;
-
-        margin-top: 7px;
-
-        padding-top: 7px;
-
-        border-top: 1px solid #464b53;
-
-        color: #929aa5;
-
-        font-size: 9px;
-    }
-
-    .summary-total strong {
-        color: #3ed66a;
-    }
-
-
-    /* =========================================================
-       MONEY COLORS
-       ========================================================= */
-
-    .money-positive {
-        color: #3ed66a !important;
-    }
-
-    .money-negative {
-        color: #ff5050 !important;
-    }
-
-
-    /* =========================================================
-       MONTH CARDS
-       ========================================================= */
-
-    .month-content {
-        display: flex !important;
-
-        align-items: center !important;
-
-        gap: 15px !important;
-    }
-
-    .donut {
-        width: 75px !important;
-        height: 75px !important;
-
-        flex-shrink: 0;
-
-        border-radius: 50%;
-
-        display: flex;
-
-        align-items: center;
-
-        justify-content: center;
-    }
-
-    .donut-hole {
-        width: 50px;
-
-        height: 50px;
-
-        border-radius: 50%;
-
-        background: #202328;
-
-        display: flex;
-
-        flex-direction: column;
-
-        align-items: center;
-
-        justify-content: center;
-    }
-
-    .donut-hole strong {
-        color: white;
-
-        font-size: 12px;
-    }
-
-    .donut-hole span {
-        color: #777f8a;
-
-        font-size: 7px;
-    }
-
-    .month-values {
-        flex: 1;
-
-        min-width: 0;
-    }
-
-    .month-value {
-        display: flex !important;
-
-        align-items: center;
-
-        gap: 6px;
-
-        margin-bottom: 6px;
-    }
-
-    .month-value > div {
-        display: flex;
-
-        flex-direction: column;
-    }
-
-    .month-value small {
-        color: #737b86;
-
-        font-size: 7px;
-    }
-
-    .month-value strong {
-        font-size: 9px;
-    }
-
-    .green-dot,
-    .red-dot {
-        width: 7px;
-
-        height: 7px;
-
-        flex-shrink: 0;
-
-        border-radius: 50%;
-    }
-
-    .green-dot {
-        background: #3ed66a;
-    }
-
-    .red-dot {
-        background: #ff5050;
-    }
-
-    .month-net {
-        display: flex !important;
-
-        justify-content: space-between;
-
-        border-top: 1px solid #353a41;
-
-        padding-top: 5px;
-
-        color: #747d88;
-
-        font-size: 7px;
-    }
-
-
-    /* =========================================================
-       MAIN GRID
-       ========================================================= */
-
-    .dashboard-grid {
-        width: 100%;
-
-        display: grid !important;
-
-        grid-template-columns:
-            0.95fr
-            1.45fr !important;
-
-        gap: 10px !important;
-    }
-
-    .dashboard-left,
-    .dashboard-right {
-        width: 100%;
-
-        min-width: 0;
-
-        display: flex !important;
-
-        flex-direction: column !important;
-
-        gap: 10px !important;
-    }
-
-
-    /* =========================================================
-       POSITION CARD
-       ========================================================= */
-
-    .accounts-card {
-        min-height: 145px;
-    }
-
-    .position-row {
-        display: flex !important;
-
-        justify-content: space-between;
-
-        align-items: center;
-
-        padding: 8px 0;
-
-        border-bottom: 1px solid #30343a;
-    }
-
-    .position-row:last-child {
-        border-bottom: none;
-    }
-
-    .position-row > div {
-        display: flex;
-
-        flex-direction: column;
-
-        gap: 2px;
-    }
-
-    .position-row strong {
-        color: #dfe4ea;
-
-        font-size: 9px;
-    }
-
-    .position-row span {
-        color: #707985;
-
-        font-size: 7px;
-    }
-
-
-    /* =========================================================
-       CHART CARDS
-       ========================================================= */
-
-    .seven-day-card {
-        min-height: 255px;
-    }
-
-    .balance-chart-card {
-        min-height: 300px;
-    }
-
-    .seven-day-chart,
-    .line-chart {
-        width: 100%;
-
-        display: flex !important;
-
-        height: 205px;
-    }
-
-    .chart-y-axis,
-    .line-y-axis {
-        width: 38px;
-
-        flex-shrink: 0;
-
-        display: flex !important;
-
-        flex-direction: column;
-
-        justify-content: space-between;
-
-        padding-bottom: 20px;
-    }
-
-    .chart-y-axis span,
-    .line-y-axis span {
-        color: #747c87;
-
-        font-size: 7px;
-
-        text-align: right;
-    }
-
-    .seven-chart-area,
-    .line-chart-area {
-        position: relative;
-
-        flex: 1;
-
-        min-width: 0;
-    }
-
-    .horizontal-lines,
-    .line-grid {
-        position: absolute;
-
-        inset: 0 0 20px;
-
-        display: flex !important;
-
-        flex-direction: column;
-
-        justify-content: space-between;
-    }
-
-    .horizontal-lines span,
-    .line-grid span {
-        width: 100%;
-
-        height: 1px;
-
-        border-top: 1px dashed #3a3f46;
-    }
-
-
-    /* =========================================================
-       BAR CHART
-       ========================================================= */
-
-    .daily-bars,
-    .trend-bars {
-        position: absolute;
-
-        inset: 0 5px 0 10px;
-
-        display: flex !important;
-
-        align-items: flex-end;
-
-        justify-content: space-around;
-    }
-
-    .daily-column,
-    .trend-column {
-        height: 100%;
-
-        flex: 1;
-
-        display: flex !important;
-
-        flex-direction: column;
-
-        align-items: center;
-
-        justify-content: flex-end;
-    }
-
-    .daily-bar-area {
-        position: relative;
-
-        width: 100%;
-
-        height: calc(100% - 20px);
-
-        display: flex !important;
-
-        align-items: flex-end;
-
-        justify-content: center;
-    }
-
-    .daily-bar {
-        width: 13px;
-
-        min-height: 2px;
-
-        border-radius: 3px 3px 1px 1px;
-
-        background: #f04444;
-    }
-
-    .daily-column:nth-child(even) .daily-bar {
-        background: #3dcc65;
-    }
-
-    .daily-label,
-    .trend-column > span {
-        height: 20px;
-
-        color: #858d98;
-
-        font-size: 7px;
-    }
-
-
-    /* =========================================================
-       TREND CHART
-       ========================================================= */
-
-    .trend-value {
-        height: 16px;
-
-        color: #56a4ff;
-
-        font-size: 7px;
-    }
-
-    .trend-bar-wrapper {
-        position: relative;
-
-        width: 100%;
-
-        height: calc(100% - 36px);
-
-        display: flex;
-
-        align-items: flex-end;
-
-        justify-content: center;
-    }
-
-    .trend-bar {
-        width: 3px;
-
-        min-height: 3px;
-
-        background: #3988ff;
-
-        position: relative;
-    }
-
-    .trend-bar::after {
-        content: "";
-
-        position: absolute;
-
-        width: 7px;
-
-        height: 7px;
-
-        top: -3px;
-
-        left: 50%;
-
-        transform: translateX(-50%);
-
-        border-radius: 50%;
-
-        background: #3988ff;
-    }
-
-
-    /* =========================================================
-       BUDGETS
-       ========================================================= */
-
-    .budgets-card {
-        min-height: 270px;
-    }
-
-    .budget-table {
-        display: flex !important;
-
-        flex-direction: column !important;
-
-        gap: 14px !important;
-    }
-
-    .budget-row {
-        width: 100%;
-
-        display: grid !important;
-
-        grid-template-columns: 1fr 40px !important;
-
-        gap: 5px;
-    }
-
-    .budget-heading {
-        display: flex !important;
-
-        align-items: center;
-
-        gap: 8px;
-    }
-
-    .budget-heading > div:last-child {
-        display: flex;
-
-        flex-direction: column;
-    }
-
-    .budget-heading strong {
-        color: #e2e6eb;
-
-        font-size: 9px;
-    }
-
-    .budget-heading span {
-        color: #727a85;
-
-        font-size: 7px;
-    }
-
-    .budget-category-icon {
-        width: 27px;
-
-        height: 27px;
-
-        border-radius: 50%;
-
-        display: flex !important;
-
-        align-items: center;
-
-        justify-content: center;
-
-        color: white;
-
-        font-size: 9px;
-    }
-
-    .budget-category-icon.safe {
-        background: #248fdc;
-    }
-
-    .budget-category-icon.warning {
-        background: #dc972b;
-    }
-
-    .budget-category-icon.danger {
-        background: #df4848;
-    }
-
-    .budget-percentage {
-        text-align: right;
-
-        font-size: 8px;
-
-        font-weight: 700;
-    }
-
-    .budget-percentage.safe {
-        color: #43d86a;
-    }
-
-    .budget-percentage.warning {
-        color: #e5a23b;
-    }
-
-    .budget-percentage.danger {
-        color: #ff5555;
-    }
-
-    .budget-progress {
-        grid-column: 1 / 3;
-
-        width: 100%;
-
-        height: 5px;
-
-        overflow: hidden;
-
-        border-radius: 20px;
-
-        background: #4a4f57;
-    }
-
-    .budget-progress-value {
-        height: 100%;
-
-        border-radius: inherit;
-
-        background: #3dcc65;
-    }
-
-    .budget-progress-value.warning {
-        background: #e3a13b;
-    }
-
-    .budget-progress-value.danger {
-        background: #ed4b4b;
-    }
-
-    .budget-limit {
-        grid-column: 1 / 3;
-
-        display: flex !important;
-
-        justify-content: space-between;
-
-        color: #747c87;
-
-        font-size: 7px;
-    }
-
-
-    /* =========================================================
-       TRANSACTIONS
-       ========================================================= */
-
-    .transactions-card {
-        min-height: 300px;
-    }
-
-    .transaction-table {
-        display: flex !important;
-
-        flex-direction: column !important;
-    }
-
-    .transaction-item {
-        width: 100%;
-
-        min-height: 52px;
-
-        display: flex !important;
-
-        align-items: center !important;
-
-        gap: 9px;
-
-        border-bottom: 1px solid #30343a;
-    }
-
-    .transaction-item:last-child {
-        border-bottom: none;
-    }
-
-    .transaction-avatar {
-        width: 29px;
-
-        height: 29px;
-
-        flex-shrink: 0;
-
-        display: flex !important;
-
-        align-items: center;
-
-        justify-content: center;
-
-        border-radius: 50%;
-    }
-
-    .income-avatar {
-        background: #174c2d;
-
-        color: #4bdd73;
-    }
-
-    .expense-avatar {
-        background: #562525;
-
-        color: #ff6060;
-    }
-
-    .transaction-main {
-        flex: 1;
-
-        min-width: 0;
-
-        display: flex !important;
-
-        flex-direction: column !important;
-
-        gap: 2px;
-    }
-
-    .transaction-main strong {
-        overflow: hidden;
-
-        color: #e0e5ea;
-
-        font-size: 9px;
-
-        text-overflow: ellipsis;
-
-        white-space: nowrap;
-    }
-
-    .transaction-main span {
-        overflow: hidden;
-
-        color: #737b86;
-
-        font-size: 7px;
-
-        text-overflow: ellipsis;
-
-        white-space: nowrap;
-    }
-
-    .transaction-date {
-        color: #7e8691;
-
-        font-size: 7px;
-
-        white-space: nowrap;
-    }
-
-    .transaction-amount {
-        min-width: 65px;
-
-        text-align: right;
-
-        font-size: 9px;
-    }
-
-
-    /* =========================================================
-       RECURRING PAYMENTS
-       ========================================================= */
-
-    .recurring-card {
-        min-height: 210px;
-    }
-
-    .upcoming-list {
-        display: flex !important;
-
-        flex-direction: column !important;
-    }
-
-    .upcoming-item {
-        min-height: 53px;
-
-        display: flex !important;
-
-        align-items: center !important;
-
-        gap: 9px;
-
-        border-bottom: 1px solid #30343a;
-    }
-
-    .upcoming-item:last-child {
-        border-bottom: none;
-    }
-
-    .upcoming-date {
-        width: 35px;
-
-        height: 37px;
-
-        flex-shrink: 0;
-
-        display: flex !important;
-
-        flex-direction: column !important;
-
-        align-items: center;
-
-        justify-content: center;
-
-        border-radius: 6px;
-
-        background: #2a2e34;
-    }
-
-    .upcoming-date strong {
-        color: #e7ebef;
-
-        font-size: 12px;
-    }
-
-    .upcoming-date span {
-        color: #747c87;
-
-        font-size: 7px;
-    }
-
-    .upcoming-info {
-        flex: 1;
-
-        min-width: 0;
-
-        display: flex !important;
-
-        flex-direction: column !important;
-
-        gap: 2px;
-    }
-
-    .upcoming-info strong {
-        color: #e1e5ea;
-
-        font-size: 9px;
-    }
-
-    .upcoming-info span {
-        color: #737b86;
-
-        font-size: 7px;
-    }
-
-    .upcoming-amount {
-        display: flex !important;
-
-        flex-direction: column !important;
-
-        align-items: flex-end;
-
-        gap: 2px;
-    }
-
-    .upcoming-amount strong {
-        color: #e1e5ea;
-
-        font-size: 9px;
-    }
-
-    .upcoming-amount span {
-        color: #777f8a;
-
-        font-size: 7px;
-    }
-
-    .upcoming-amount .today {
-        color: #ff5555;
-    }
-
-
-    /* =========================================================
-       CASH FLOW TABLE
-       ========================================================= */
-
-    .cashflow-card {
-        min-height: 220px;
-    }
-
-    .cashflow-month {
-        display: flex !important;
-
-        justify-content: center;
-
-        align-items: center;
-
-        gap: 12px;
-
-        margin-bottom: 10px;
-    }
-
-    .cashflow-month button {
-        border: none;
-
-        background: transparent;
-
-        color: #b8bec7;
-    }
-
-    .cashflow-month strong {
-        padding: 5px 12px;
-
-        border-radius: 3px;
-
-        background: #174b8c;
-
-        color: #70b1ff;
-
-        font-size: 8px;
-    }
-
-    .cashflow-table {
-        width: 100%;
-
-        border: 1px solid #777e87;
-
-        font-size: 7px;
-    }
-
-    .cashflow-header,
-    .cashflow-row {
-        display: grid !important;
-
-        grid-template-columns:
-            1fr
-            .7fr
-            .7fr !important;
-    }
-
-    .cashflow-header > *,
-    .cashflow-row > * {
-        padding: 5px;
-
-        border-right: 1px solid #777e87;
-
-        border-bottom: 1px solid #777e87;
-    }
-
-    .cashflow-header strong {
-        background: #174b8c;
-
-        color: #70b1ff;
-
-        text-align: right;
-    }
-
-    .cashflow-row span {
-        color: #a1a8b1;
-    }
-
-    .cashflow-row strong {
-        color: #e0e5ea;
-
-        text-align: right;
-    }
-
-    .cashflow-total {
-        padding: 6px;
-
-        margin-top: 7px;
-
-        background: #174d91;
-
-        color: #70b1ff;
-
-        text-align: right;
-
-        font-size: 8px;
-    }
-
-
-    /* =========================================================
-       FOOTER
-       ========================================================= */
-
-    .dashboard-footer {
-        width: 100%;
-
-        min-height: 40px;
-
-        display: flex !important;
-
-        align-items: center;
-
-        justify-content: center;
-
-        gap: 7px;
-
-        margin-top: 10px;
-
-        border: 1px solid #30343b;
-
-        border-radius: 7px;
-
-        background: #1b1e22;
-
-        color: #666f7a;
-
-        font-size: 7px;
-    }
-
-
-    /* =========================================================
-       EMPTY
-       ========================================================= */
-
-    .empty-dashboard {
-        min-height: 120px;
-
-        display: flex !important;
-
-        flex-direction: column !important;
-
-        align-items: center;
-
-        justify-content: center;
-
-        text-align: center;
-    }
-
-    .empty-dashboard i {
-        color: #59616c;
-
-        font-size: 22px;
-
-        margin-bottom: 7px;
-    }
-
-    .empty-dashboard strong {
-        color: #b9c0c9;
-
-        font-size: 9px;
-    }
-
-    .empty-dashboard span {
-        color: #6f7782;
-
-        font-size: 7px;
-
-        margin-top: 3px;
-    }
-
-
-    /* =========================================================
-       RESPONSIVE
-       ========================================================= */
-
-    @@media (max-width: 900px) {
-
-        .top-card-grid {
-            grid-template-columns: 1fr 1fr !important;
-        }
-
-        .summary-card {
-            grid-column: 1 / 3;
-        }
-
-        .dashboard-grid {
-            grid-template-columns: 1fr !important;
-        }
-    }
-
-
-    @@media (max-width: 600px) {
-
-        .fin-dashboard {
-            padding: 15px;
-        }
-
-        .top-card-grid {
-            grid-template-columns: 1fr !important;
-        }
-
-        .summary-card {
-            grid-column: auto;
-        }
-
-        .dashboard-topbar {
-            flex-direction: column;
-
-            align-items: flex-start;
-
-            gap: 10px;
-        }
-
-        .dashboard-add {
-            width: 100%;
-
-            justify-content: center;
-        }
-    }
-
-</style>

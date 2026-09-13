@@ -58,10 +58,10 @@ D:\FinTrack\obj\Debug\net10.0\scopedcss\Components\Pages\Dashboard\Dashboard.raz
 D:\FinTrack\obj\Debug\net10.0\scopedcss\Components\Pages\Reports\Index.razor.rz.scp.css
 D:\FinTrack\obj\Debug\net10.0\scopedcss\bundle\FinTrack.styles.css
 D:\FinTrack\obj\Debug\net10.0\scopedcss\projectbundle\FinTrack.bundle.scp.css
-D:\FinTrack\obj\Debug\net10.0\compressed\ci2165jmlv-{0}-6f6ggsbf0w-6f6ggsbf0w.gz
 D:\FinTrack\obj\Debug\net10.0\compressed\ogiygz4vaa-{0}-ckecw8wyul-ckecw8wyul.gz
 D:\FinTrack\obj\Debug\net10.0\compressed\mu0jd0naol-{0}-juqkcvf8te-juqkcvf8te.gz
-D:\FinTrack\obj\Debug\net10.0\compressed\r5qhz0l8vs-{0}-0g3h5qelbg-0g3h5qelbg.gz
+D:\FinTrack\obj\Debug\net10.0\compressed\r5qhz0l8vs-{0}-7zq1qcqjza-7zq1qcqjza.gz
+D:\FinTrack\obj\Debug\net10.0\compressed\hq0ssb9o8d-{0}-ft596xkw61-ft596xkw61.gz
 D:\FinTrack\obj\Debug\net10.0\compressed\m3106canhy-{0}-61n19gt1b8-61n19gt1b8.gz
 D:\FinTrack\obj\Debug\net10.0\compressed\t41grj99h4-{0}-u6g6077rv5-u6g6077rv5.gz
 D:\FinTrack\obj\Debug\net10.0\compressed\nx0gf4b41j-{0}-xtxxf3hu2r-xtxxf3hu2r.gz
@@ -139,4 +139,5 @@ D:\FinTrack\obj\Debug\net10.0\refint\FinTrack.dll
 D:\FinTrack\obj\Debug\net10.0\FinTrack.pdb
 D:\FinTrack\obj\Debug\net10.0\FinTrack.genruntimeconfig.cache
 D:\FinTrack\obj\Debug\net10.0\ref\FinTrack.dll
-D:\FinTrack\obj\Debug\net10.0\compressed\hq0ssb9o8d-{0}-ft596xkw61-ft596xkw61.gz
+D:\FinTrack\obj\Debug\net10.0\compressed\ci2165jmlv-{0}-6f6ggsbf0w-6f6ggsbf0w.gz
+D:\FinTrack\obj\Debug\net10.0\compressed\bncnbsafiy-{0}-fp7t2wujz0-fp7t2wujz0.gz

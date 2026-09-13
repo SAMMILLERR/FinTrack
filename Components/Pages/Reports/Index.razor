@@ -602,7 +602,7 @@
 
 
                 <!-- =============================================
-                     CATEGORY TABLE
+                     REPORT HIGHLIGHTS
                      ============================================= -->
 
                 <div class="report-table-card">
@@ -612,11 +612,11 @@
                         <div>
 
                             <span class="reports-eyebrow">
-                                DETAILS
+                                HIGHLIGHTS
                             </span>
 
                             <h3>
-                                Category Breakdown
+                                What stands out
                             </h3>
 
                         </div>
@@ -624,86 +624,69 @@
                     </div>
 
 
-                    <div class="table-responsive">
+                    <div class="report-summary-grid">
 
-                        <table class="report-table">
+                        <div class="report-summary-card expense-summary">
 
-                            <thead>
+                            <div class="summary-icon">
+                                <i class="bi bi-arrow-up-right"></i>
+                            </div>
 
-                                <tr>
+                            <div>
 
-                                    <th>
-                                        Category
-                                    </th>
+                                <span>
+                                    Largest Expense
+                                </span>
 
-                                    <th>
-                                        Type
-                                    </th>
+                                <strong>
+                                    @GetLargestExpenseCategory()
+                                </strong>
 
-                                    <th>
-                                        Amount
-                                    </th>
+                            </div>
 
-                                    <th>
-                                        Share
-                                    </th>
-
-                                </tr>
-
-                            </thead>
+                        </div>
 
 
-                            <tbody>
+                        <div class="report-summary-card income-summary">
 
-                                @foreach (var category in Report.Categories)
-                                {
-                                    <tr>
+                            <div class="summary-icon">
+                                <i class="bi bi-arrow-down-left"></i>
+                            </div>
 
-                                        <td>
+                            <div>
 
-                                            <div class="table-category">
+                                <span>
+                                    Largest Income
+                                </span>
 
-                                                <span class="category-dot"
-                                                      style="background-color:@GetCategoryColor(category.CategoryId)">
-                                                </span>
+                                <strong>
+                                    @GetLargestIncomeCategory()
+                                </strong>
 
-                                                @category.CategoryName
+                            </div>
 
-                                            </div>
-
-                                        </td>
-
-
-                                        <td>
-
-                                            <span class="type-badge @(category.TransactionType == "Income" ? "income-badge" : "expense-badge")">
-
-                                                @category.TransactionType
-
-                                            </span>
-
-                                        </td>
+                        </div>
 
 
-                                        <td class="amount-cell">
+                        <div class="report-summary-card net-summary">
 
-                                            ₹@category.Amount.ToString("N0")
+                            <div class="summary-icon">
+                                <i class="bi bi-calculator"></i>
+                            </div>
 
-                                        </td>
+                            <div>
 
+                                <span>
+                                    Average Transaction
+                                </span>
 
-                                        <td>
+                                <strong>
+                                    ₹@GetAverageTransaction().ToString("N0")
+                                </strong>
 
-                                            @category.Percentage%
+                            </div>
 
-                                        </td>
-
-                                    </tr>
-                                }
-
-                            </tbody>
-
-                        </table>
+                        </div>
 
                     </div>
 
@@ -1051,6 +1034,46 @@
             _ =>
                 "Income & Expenses by Category"
         };
+    }
+
+
+    // =========================================================
+    // REPORT HIGHLIGHTS
+    // =========================================================
+
+    private string GetLargestExpenseCategory()
+    {
+        var category = Report.Categories?
+            .Where(c => c.TransactionType == "Expense")
+            .OrderByDescending(c => c.Amount)
+            .FirstOrDefault();
+
+        return category?.CategoryName ?? "No expense data";
+    }
+
+
+    private string GetLargestIncomeCategory()
+    {
+        var category = Report.Categories?
+            .Where(c => c.TransactionType == "Income")
+            .OrderByDescending(c => c.Amount)
+            .FirstOrDefault();
+
+        return category?.CategoryName ?? "No income data";
+    }
+
+
+    private decimal GetAverageTransaction()
+    {
+        if (Report.TransactionCount <= 0)
+        {
+            return 0;
+        }
+
+        var totalAmount =
+            Report.TotalIncome + Report.TotalExpense;
+
+        return totalAmount / Report.TransactionCount;
     }
 
 

@@ -94,6 +94,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xIb21lLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
+[D:/FinTrack/Components/Pages/Payments/Send.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQYXltZW50c1xTZW5kLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
 [D:/FinTrack/Components/Pages/RecurringPayments/Create.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xSZWN1cnJpbmdQYXltZW50c1xDcmVhdGUucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 

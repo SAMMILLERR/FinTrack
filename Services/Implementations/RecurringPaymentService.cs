@@ -1,4 +1,5 @@
 using FinTrack.Models;
+using FinTrack.Models.Payments;
 using FinTrack.Repositories;
 using FinTrack.Services.Interfaces;
 
@@ -7,45 +8,52 @@ namespace FinTrack.Services.Implementations;
 public class RecurringPaymentService : IRecurringPaymentService
 {
     private readonly IRecurringPaymentRepository _recurringPaymentRepository;
+    private readonly IPaymentService _paymentService;
 
     public RecurringPaymentService(
-        IRecurringPaymentRepository recurringPaymentRepository)
+        IRecurringPaymentRepository recurringPaymentRepository,
+        IPaymentService paymentService)
     {
         _recurringPaymentRepository = recurringPaymentRepository;
+        _paymentService = paymentService;
     }
 
     // ============================================================
-    // GET ALL RECURRING PAYMENTS FOR USER
+    // GET ALL
     // ============================================================
 
-    public async Task<IEnumerable<RecurringPayment>> GetRecurringPaymentsAsync(
-        int userId)
+    public async Task<IEnumerable<RecurringPayment>>
+        GetRecurringPaymentsAsync(int userId)
     {
         return await _recurringPaymentRepository
             .GetByUserIdAsync(userId);
     }
 
     // ============================================================
-    // GET SINGLE RECURRING PAYMENT
+    // GET ONE
     // ============================================================
 
-    public async Task<RecurringPayment?> GetRecurringPaymentAsync(
-        int recurringPaymentId,
-        int userId)
+    public async Task<RecurringPayment?>
+        GetRecurringPaymentAsync(
+            int recurringPaymentId,
+            int userId)
     {
         return await _recurringPaymentRepository
-            .GetByIdAsync(recurringPaymentId, userId);
+            .GetByIdAsync(
+                recurringPaymentId,
+                userId);
     }
 
     // ============================================================
-    // ADD RECURRING PAYMENT
+    // ADD
     // ============================================================
 
     public async Task AddRecurringPaymentAsync(
         RecurringPayment recurringPayment)
     {
         recurringPayment.Frequency =
-            NormalizeFrequency(recurringPayment.Frequency);
+            NormalizeFrequency(
+                recurringPayment.Frequency);
 
         recurringPayment.StartDate =
             recurringPayment.StartDate.Date;
@@ -61,16 +69,11 @@ public class RecurringPaymentService : IRecurringPaymentService
 
         recurringPayment.IsActive = true;
 
-        // Save the recurring schedule.
-        // Repository must populate RecurringPaymentId.
         await _recurringPaymentRepository
             .AddAsync(recurringPayment);
 
-        /*
-         * If the payment is already due,
-         * process it immediately instead of
-         * waiting for the background worker.
-         */
+        // If the payment starts today or in the past,
+        // process it immediately.
         if (recurringPayment.NextPaymentDate <= DateTime.Today)
         {
             await ProcessDuePaymentsAsync();
@@ -78,14 +81,15 @@ public class RecurringPaymentService : IRecurringPaymentService
     }
 
     // ============================================================
-    // UPDATE RECURRING PAYMENT
+    // UPDATE
     // ============================================================
 
     public async Task UpdateRecurringPaymentAsync(
         RecurringPayment recurringPayment)
     {
         recurringPayment.Frequency =
-            NormalizeFrequency(recurringPayment.Frequency);
+            NormalizeFrequency(
+                recurringPayment.Frequency);
 
         recurringPayment.StartDate =
             recurringPayment.StartDate.Date;
@@ -102,10 +106,6 @@ public class RecurringPaymentService : IRecurringPaymentService
         await _recurringPaymentRepository
             .UpdateAsync(recurringPayment);
 
-        /*
-         * If the updated schedule is already due,
-         * process it immediately.
-         */
         if (
             recurringPayment.IsActive &&
             recurringPayment.NextPaymentDate <= DateTime.Today)
@@ -115,7 +115,34 @@ public class RecurringPaymentService : IRecurringPaymentService
     }
 
     // ============================================================
-    // PAUSE / RESUME RECURRING PAYMENT
+    // DELETE
+    // ============================================================
+
+    public async Task DeleteRecurringPaymentAsync(
+        int recurringPaymentId,
+        int userId)
+    {
+        var recurringPayment =
+            await _recurringPaymentRepository
+                .GetByIdAsync(
+                    recurringPaymentId,
+                    userId);
+
+        if (recurringPayment == null)
+        {
+            return;
+        }
+
+        // Delete only the schedule.
+        // Existing transactions remain untouched.
+        await _recurringPaymentRepository
+            .DeleteAsync(
+                recurringPaymentId,
+                userId);
+    }
+
+    // ============================================================
+    // PAUSE / RESUME
     // ============================================================
 
     public async Task ToggleStatusAsync(
@@ -129,7 +156,7 @@ public class RecurringPaymentService : IRecurringPaymentService
     }
 
     // ============================================================
-    // PROCESS ALL DUE RECURRING PAYMENTS
+    // PROCESS DUE PAYMENTS
     // ============================================================
 
     public async Task ProcessDuePaymentsAsync(
@@ -141,62 +168,140 @@ public class RecurringPaymentService : IRecurringPaymentService
             await _recurringPaymentRepository
                 .GetDuePaymentsAsync(today);
 
-        foreach (var payment in duePayments)
+        foreach (var recurringPayment in duePayments)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             var occurrenceDate =
-                payment.NextPaymentDate.Date;
+                recurringPayment.NextPaymentDate.Date;
 
-            /*
-             * Catch up missed payments.
-             *
-             * Example:
-             *
-             * NextPaymentDate = June 1
-             * Today            = September 12
-             *
-             * The service processes:
-             *
-             * June 1
-             * July 1
-             * August 1
-             * September 1
-             *
-             * and advances the schedule.
-             */
+            // -----------------------------------------------------
+            // Process every overdue occurrence.
+            // -----------------------------------------------------
+
             while (
                 occurrenceDate <= today &&
-                payment.IsActive)
+                recurringPayment.IsActive)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+
+                // -------------------------------------------------
+                // Validate receiver
+                // -------------------------------------------------
+
+                if (recurringPayment.ToUserId <= 0)
+                {
+                    break;
+                }
+
+                if (
+                    recurringPayment.ToUserId ==
+                    recurringPayment.UserId)
+                {
+                    break;
+                }
+
+                // -------------------------------------------------
+                // Calculate next occurrence
+                // -------------------------------------------------
 
                 var nextPaymentDate =
                     CalculateNextPaymentDate(
                         occurrenceDate,
-                        payment.Frequency);
+                        recurringPayment.Frequency);
 
-                /*
-                 * The schedule remains active only when
-                 * the NEXT occurrence is still within
-                 * the configured EndDate.
-                 */
+                // -------------------------------------------------
+                // Determine whether schedule remains active
+                // -------------------------------------------------
+
                 var shouldRemainActive =
-                    !payment.EndDate.HasValue ||
+                    !recurringPayment.EndDate.HasValue ||
                     nextPaymentDate.Date <=
-                        payment.EndDate.Value.Date;
+                    recurringPayment.EndDate.Value.Date;
+
+                // -------------------------------------------------
+                // BUILD PAYMENT REQUEST
+                // -------------------------------------------------
+
+                var paymentRequest = new PaymentRequest
+                {
+                    FromUserId =
+                        recurringPayment.UserId,
+
+                    ToUserId =
+                        recurringPayment.ToUserId,
+
+                    Amount =
+                        recurringPayment.Amount,
+
+                    PaymentDate =
+                        occurrenceDate,
+
+                    PaymentType =
+                        PaymentType.Recurring,
+
+                    Description =
+                        recurringPayment.PaymentName,
+
+                    ExpenseCategoryId =
+                        recurringPayment.CategoryId,
+
+                    RecurringPaymentId =
+                        recurringPayment.RecurringPaymentId
+                };
+
+                // -------------------------------------------------
+                // PROCESS THROUGH PAYMENT ENGINE
+                // -------------------------------------------------
+
+                var result =
+                    await _paymentService
+                        .ProcessPaymentAsync(
+                            paymentRequest);
+
+                // -------------------------------------------------
+                // PAYMENT FAILED
+                // -------------------------------------------------
+
+                if (!result.Success)
+                {
+                    // Do not advance the schedule.
+                    //
+                    // The occurrence remains due so that it
+                    // can be retried later.
+                    break;
+                }
+
+                // -------------------------------------------------
+                // PAYMENT SUCCESSFUL
+                // -------------------------------------------------
+
+                recurringPayment.NextPaymentDate =
+                    nextPaymentDate;
+
+                recurringPayment.IsActive =
+                    shouldRemainActive;
+
+                // -------------------------------------------------
+                // UPDATE RECURRING SCHEDULE
+                // -------------------------------------------------
 
                 await _recurringPaymentRepository
-                    .ProcessOccurrenceAsync(
-                        payment,
-                        occurrenceDate,
-                        nextPaymentDate,
-                        shouldRemainActive);
+                    .UpdateAsync(
+                        recurringPayment);
+
+                // -------------------------------------------------
+                // END DATE REACHED
+                // -------------------------------------------------
 
                 if (!shouldRemainActive)
                 {
                     break;
                 }
+
+                // -------------------------------------------------
+                // MOVE TO NEXT OCCURRENCE
+                // -------------------------------------------------
 
                 occurrenceDate =
                     nextPaymentDate.Date;
@@ -208,9 +313,10 @@ public class RecurringPaymentService : IRecurringPaymentService
     // CALCULATE NEXT PAYMENT DATE
     // ============================================================
 
-    private static DateTime CalculateNextPaymentDate(
-        DateTime currentDate,
-        string frequency)
+    private static DateTime
+        CalculateNextPaymentDate(
+            DateTime currentDate,
+            string frequency)
     {
         return frequency switch
         {
@@ -242,13 +348,18 @@ public class RecurringPaymentService : IRecurringPaymentService
                 "Frequency is required.");
         }
 
-        return frequency.Trim().ToLowerInvariant() switch
+        return frequency
+            .Trim()
+            .ToLowerInvariant() switch
         {
-            "weekly" => "Weekly",
+            "weekly" =>
+                "Weekly",
 
-            "monthly" => "Monthly",
+            "monthly" =>
+                "Monthly",
 
-            "yearly" => "Yearly",
+            "yearly" =>
+                "Yearly",
 
             _ =>
                 throw new ArgumentException(

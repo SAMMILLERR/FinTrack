@@ -73,33 +73,6 @@ else
 
             </div>
 
-
-            @if (!IsAdmin)
-            {
-                <div class="transaction-actions">
-
-                    <a href="/transactions/create?type=Income"
-                       class="transaction-income-button">
-
-                        <i class="bi bi-plus-lg"></i>
-
-                        Income
-
-                    </a>
-
-
-                    <a href="/transactions/create?type=Expense"
-                       class="transaction-expense-button">
-
-                        <i class="bi bi-plus-lg"></i>
-
-                        Expense
-
-                    </a>
-
-                </div>
-            }
-
         </div>
 
 
@@ -589,7 +562,7 @@ else
                         </strong>
 
                         <span>
-                            Select another date or add a transaction.
+                            Select another date to view transactions.
                         </span>
 
                     </div>
@@ -676,31 +649,6 @@ else
                                     </span>
 
                                 </div>
-
-
-                                <!-- ACTIONS -->
-
-                                @if (!IsAdmin)
-                                {
-                                    <div class="transaction-item-actions">
-
-                                        <a href="/transactions/edit/@transaction.TransactionId"
-                                           class="transaction-edit-button">
-
-                                            <i class="bi bi-pencil"></i>
-
-                                        </a>
-
-
-                                        <a href="/transactions/delete/@transaction.TransactionId"
-                                           class="transaction-delete-button">
-
-                                            <i class="bi bi-trash"></i>
-
-                                        </a>
-
-                                    </div>
-                                }
 
                             </div>
                         }
@@ -815,6 +763,7 @@ else
                                         </span>
                                     }
 
+
                                     @if (IsAdmin)
                                     {
                                         <span>
@@ -842,29 +791,6 @@ else
                                 </span>
 
                             </div>
-
-
-                            @if (!IsAdmin)
-                            {
-                                <div class="transaction-item-actions">
-
-                                    <a href="/transactions/edit/@transaction.TransactionId"
-                                       class="transaction-edit-button">
-
-                                        <i class="bi bi-pencil"></i>
-
-                                    </a>
-
-
-                                    <a href="/transactions/delete/@transaction.TransactionId"
-                                       class="transaction-delete-button">
-
-                                        <i class="bi bi-trash"></i>
-
-                                    </a>
-
-                                </div>
-                            }
 
                         </div>
                     }
@@ -1136,7 +1062,8 @@ else
 
 
         if (SelectedDate.HasValue &&
-            SelectedDate.Value.Month != CurrentMonth.Month)
+            (SelectedDate.Value.Month != CurrentMonth.Month ||
+             SelectedDate.Value.Year != CurrentMonth.Year))
         {
             SelectedDate = null;
         }

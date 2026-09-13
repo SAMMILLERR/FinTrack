@@ -3,11 +3,30 @@ using FinTrack.Models;
 namespace FinTrack.Services.Interfaces;
 
 public interface ITransactionService
-{Task<Budget?> GetBudgetForTransactionAsync(
-    Transaction transaction);
+{
+    // =========================================================
+    // BUDGET
+    // =========================================================
 
-Task<decimal> GetCurrentCategorySpendingAsync(
-    Transaction transaction);
+    Task<Budget?> GetBudgetForTransactionAsync(
+        Transaction transaction);
+
+    Task<decimal> GetCurrentCategorySpendingAsync(
+        Transaction transaction);
+
+
+    // =========================================================
+    // BALANCE
+    // =========================================================
+
+    Task<decimal> GetAvailableBalanceAsync(
+        int userId);
+
+
+    // =========================================================
+    // TRANSACTIONS
+    // =========================================================
+
     Task<TransactionPageResult> GetTransactionsAsync(
         int? userId,
         DateTime? fromDate,
@@ -19,7 +38,8 @@ Task<decimal> GetCurrentCategorySpendingAsync(
 
     Task<IEnumerable<Category>> GetCategoriesAsync();
 
-    Task<IEnumerable<Category>> GetCategoriesByTypeAsync(string type);
+    Task<IEnumerable<Category>> GetCategoriesByTypeAsync(
+        string type);
 
     Task<Transaction?> GetTransactionAsync(
         int transactionId,
@@ -36,6 +56,11 @@ Task<decimal> GetCurrentCategorySpendingAsync(
         int userId);
 }
 
+
+// =============================================================
+// PAGED TRANSACTION RESULT
+// =============================================================
+
 public class TransactionPageResult
 {
     public IEnumerable<Transaction> Transactions { get; set; }
@@ -47,5 +72,4 @@ public class TransactionPageResult
     public int CurrentPage { get; set; }
 
     public int TotalPages { get; set; }
-    
 }

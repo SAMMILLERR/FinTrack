@@ -6,6 +6,8 @@
 
     <div class="container">
 
+        <!-- BRAND -->
+
         <a class="navbar-brand fw-bold"
            href="@(IsAdmin ? "/transactions" : "/dashboard")">
 
@@ -13,6 +15,9 @@
             FinTrack
 
         </a>
+
+
+        <!-- MOBILE TOGGLE -->
 
         <button class="navbar-toggler"
                 type="button"
@@ -22,6 +27,9 @@
             <span class="navbar-toggler-icon"></span>
 
         </button>
+
+
+        <!-- NAVIGATION -->
 
         <div class="collapse navbar-collapse" id="navbarNav">
 
@@ -72,6 +80,15 @@
                             </a>
                         </li>
 
+                        <!-- SEND PAYMENT -->
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="/payments/send">
+                                <i class="bi bi-send"></i>
+                                Send Payment
+                            </a>
+                        </li>
+
                         <li class="nav-item">
                             <a class="nav-link" href="/budgets">
                                 <i class="bi bi-pie-chart"></i>
@@ -97,6 +114,9 @@
 
             </ul>
 
+
+            <!-- RIGHT SIDE -->
+
             @if (IsAuthenticated)
             {
                 <ul class="navbar-nav align-items-center">
@@ -119,9 +139,6 @@
                         </div>
 
                     </li>
-
-                    <!-- THEME -->
-
 
 
                     <!-- LOGOUT -->
@@ -166,6 +183,7 @@
 
 </nav>
 
+
 @code {
 
     [CascadingParameter]
@@ -197,12 +215,6 @@
 
         UserRole =
             IsAdmin ? "Administrator" : "User";
-    }
-
-    private async Task ToggleTheme()
-    {
-        await JS.InvokeVoidAsync(
-            "FinTrack.toggleTheme");
     }
 
     private async Task Logout()

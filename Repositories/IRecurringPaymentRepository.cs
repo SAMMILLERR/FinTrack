@@ -4,7 +4,8 @@ namespace FinTrack.Repositories;
 
 public interface IRecurringPaymentRepository
 {
-    Task<IEnumerable<RecurringPayment>> GetByUserIdAsync(int userId);
+    Task<IEnumerable<RecurringPayment>> GetByUserIdAsync(
+        int userId);
 
     Task<RecurringPayment?> GetByIdAsync(
         int recurringPaymentId,
@@ -19,11 +20,15 @@ public interface IRecurringPaymentRepository
     Task UpdateAsync(
         RecurringPayment recurringPayment);
 
+    Task DeleteAsync(
+        int recurringPaymentId,
+        int userId);
+
     Task ToggleStatusAsync(
         int recurringPaymentId,
         int userId);
 
-    Task ProcessOccurrenceAsync(
+    Task<bool> ProcessOccurrenceAsync(
         RecurringPayment recurringPayment,
         DateTime transactionDate,
         DateTime nextPaymentDate,

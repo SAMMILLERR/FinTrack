@@ -1,13 +1,14 @@
 @page "/transactions/create"
 @rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
 
-@attribute [Authorize]
-
 @using System.Security.Claims
 @using FinTrack.Models
 @using FinTrack.Services.Interfaces
 
+@attribute [Authorize]
+
 @inject ITransactionService TransactionService
+@inject IBudgetRecommendationService BudgetRecommendationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
 
@@ -60,6 +61,7 @@ else
             </label>
 
             <InputSelect @bind-Value="Transaction.CategoryId"
+                         @bind-Value:after="OnBudgetInputsChangedAsync"
                          class="form-select">
 
                 <option value="0">
@@ -86,6 +88,7 @@ else
             </label>
 
             <InputNumber @bind-Value="Transaction.Amount"
+                         @bind-Value:after="OnBudgetInputsChangedAsync"
                          class="form-control" />
 
             <ValidationMessage For="@(() => Transaction.Amount)" />
@@ -99,6 +102,7 @@ else
             </label>
 
             <InputDate @bind-Value="Transaction.TransactionDate"
+                       @bind-Value:after="OnBudgetInputsChangedAsync"
                        class="form-control" />
 
             <ValidationMessage For="@(() => Transaction.TransactionDate)" />
@@ -118,25 +122,151 @@ else
 
         </div>
 
-        @if (!string.IsNullOrEmpty(BudgetWarning))
+        @if (!string.IsNullOrEmpty(BudgetStatus))
         {
-            <div class="alert alert-warning">
+            <div class="alert @(IsBudgetExceeded ? "alert-danger" : "alert-warning")">
 
                 <div class="d-flex">
 
-                    <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+                    <i class="bi @(IsBudgetExceeded
+                        ? "bi-shield-exclamation"
+                        : "bi-exclamation-triangle-fill") fs-4 me-3"></i>
 
-                    <div>
+                    <div class="w-100">
 
-                        <strong>Budget warning</strong>
+                        <strong>
+                            @(IsBudgetExceeded
+                                ? "Budget limit exceeded"
+                                : "Budget warning")
+                        </strong>
 
                         <div class="mt-1">
-                            @BudgetWarning
+                            @BudgetStatus
+                        </div>
+
+                        @if (HasBudget)
+                        {
+                            <div class="row mt-3">
+
+                                <div class="col-md-3">
+                                    <small class="text-muted d-block">
+                                        Monthly budget
+                                    </small>
+
+                                    <strong>
+                                        ₹@BudgetLimit.ToString("N2")
+                                    </strong>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <small class="text-muted d-block">
+                                        Already spent
+                                    </small>
+
+                                    <strong>
+                                        ₹@CurrentSpent.ToString("N2")
+                                    </strong>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <small class="text-muted d-block">
+                                        This expense
+                                    </small>
+
+                                    <strong>
+                                        ₹@Transaction.Amount.ToString("N2")
+                                    </strong>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <small class="text-muted d-block">
+                                        Projected spending
+                                    </small>
+
+                                    <strong>
+                                        ₹@ProjectedSpent.ToString("N2")
+                                    </strong>
+                                </div>
+
+                            </div>
+                        }
+
+                    </div>
+
+                </div>
+
+            </div>
+        }
+
+        @if (Recommendation?.HasRecommendation == true)
+        {
+            <div class="alert alert-primary">
+
+                <div class="d-flex">
+
+                    <i class="bi bi-graph-up-arrow fs-4 me-3"></i>
+
+                    <div class="w-100">
+
+                        <strong>
+                            FinTrack budget recommendation
+                        </strong>
+
+                        <div class="mt-1">
+                            @Recommendation.Message
+                        </div>
+
+                        <div class="mt-3 d-flex align-items-center gap-3 flex-wrap">
+
+                            <div>
+                                <small class="text-muted d-block">
+                                    Suggested budget
+                                </small>
+
+                                <strong class="fs-5">
+                                    ₹@Recommendation.SuggestedBudget.ToString("N0")
+                                </strong>
+                            </div>
+
+                            <div>
+                                <small class="text-muted d-block">
+                                    Current budget
+                                </small>
+
+                                <strong class="fs-5">
+                                    ₹@Recommendation.CurrentBudget.ToString("N0")
+                                </strong>
+                            </div>
+
+                            <button type="button"
+                                    class="btn btn-primary"
+                                    disabled="@IsUpdatingBudget"
+                                    @onclick="ApplyBudgetRecommendationAsync">
+
+                                <i class="bi bi-arrow-up-circle me-1"></i>
+
+                                @(IsUpdatingBudget
+                                    ? "Updating..."
+                                    : "Update Budget")
+
+                            </button>
+
                         </div>
 
                     </div>
 
                 </div>
+
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(BudgetUpdateMessage))
+        {
+            <div class="alert alert-success">
+
+                <i class="bi bi-check-circle-fill me-2"></i>
+
+                @BudgetUpdateMessage
 
             </div>
         }
@@ -164,22 +294,34 @@ else
                         <div class="row mb-3">
 
                             <div class="col-md-6">
-                                <strong>Monthly budget:</strong>
+                                <strong>
+                                    Monthly budget:
+                                </strong>
+
                                 ₹@BudgetLimit.ToString("N2")
                             </div>
 
                             <div class="col-md-6">
-                                <strong>Already spent:</strong>
+                                <strong>
+                                    Already spent:
+                                </strong>
+
                                 ₹@CurrentSpent.ToString("N2")
                             </div>
 
                             <div class="col-md-6 mt-2">
-                                <strong>This expense:</strong>
+                                <strong>
+                                    This expense:
+                                </strong>
+
                                 ₹@Transaction.Amount.ToString("N2")
                             </div>
 
                             <div class="col-md-6 mt-2">
-                                <strong>Projected spending:</strong>
+                                <strong>
+                                    Projected spending:
+                                </strong>
+
                                 ₹@ProjectedSpent.ToString("N2")
                             </div>
 
@@ -187,14 +329,14 @@ else
 
                         <div class="alert alert-light border">
 
-                            <strong>FinTrack disclaimer</strong>
+                            <strong>
+                                FinTrack disclaimer
+                            </strong>
 
                             <p class="mb-0 mt-1">
-                                FinTrack recommends staying within your
-                                configured budget. Proceeding will cause
-                                this category to exceed its monthly limit.
-                                You are choosing to override this
-                                budgeting safeguard.
+                                FinTrack recommends staying within your configured budget.
+                                Proceeding will cause this category to exceed its monthly limit.
+                                You are choosing to override this budgeting safeguard.
                             </p>
 
                         </div>
@@ -231,7 +373,11 @@ else
         @if (!string.IsNullOrEmpty(ErrorMessage))
         {
             <div class="alert alert-danger">
+
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+
                 @ErrorMessage
+
             </div>
         }
 
@@ -259,61 +405,123 @@ else
 
 @code
 {
+    // =========================================================
+    // DATA
+    // =========================================================
+
     private Transaction Transaction { get; set; } = new();
 
     private List<Category> Categories { get; set; } = new();
 
     private string Type { get; set; } = "Expense";
 
-    private bool IsLoading = true;
 
+    // =========================================================
+    // STATE
+    // =========================================================
+
+    private bool IsLoading = true;
     private bool IsSaving;
+    private bool IsUpdatingBudget;
 
     private string? ErrorMessage;
-
-    private string? BudgetWarning;
+    private string? BudgetStatus;
+    private string? BudgetUpdateMessage;
 
     private bool ShowBudgetConfirmation;
+    private bool IsBudgetExceeded;
+    private bool HasBudget;
 
     private decimal BudgetLimit;
-
     private decimal CurrentSpent;
-
     private decimal ProjectedSpent;
 
     private string BudgetCategoryName = "";
 
+    private int? CurrentUserId;
+
+    private BudgetRecommendation? Recommendation;
+
+
+    // =========================================================
+    // INITIALIZATION
+    // =========================================================
+
     protected override async Task OnInitializedAsync()
     {
-        Transaction.TransactionDate = DateTime.Today;
-        Transaction.TransactionType = Type;
+        try
+        {
+            Transaction.TransactionDate = DateTime.Today;
 
-        await LoadCategories();
+            Transaction.TransactionType = Type;
 
-        IsLoading = false;
+            var authenticationState =
+                await AuthenticationStateProvider
+                    .GetAuthenticationStateAsync();
+
+            var user = authenticationState.User;
+
+            var claim =
+                user.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (claim == null ||
+                !int.TryParse(claim.Value, out var userId))
+            {
+                ErrorMessage =
+                    "Unable to identify the current user.";
+
+                return;
+            }
+
+            CurrentUserId = userId;
+
+            await LoadCategories();
+        }
+        catch (Exception)
+        {
+            ErrorMessage =
+                "Unable to load the transaction form right now.";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
+
+
+    // =========================================================
+    // TRANSACTION TYPE
+    // =========================================================
 
     private async Task SetIncome()
     {
         await ChangeType("Income");
     }
 
+
     private async Task SetExpense()
     {
         await ChangeType("Expense");
     }
+
 
     private async Task ChangeType(string type)
     {
         Type = type;
 
         Transaction.TransactionType = Type;
+
         Transaction.CategoryId = 0;
 
         ClearBudgetMessages();
 
         await LoadCategories();
     }
+
+
+    // =========================================================
+    // CATEGORIES
+    // =========================================================
 
     private async Task LoadCategories()
     {
@@ -324,6 +532,165 @@ else
         Categories = categories.ToList();
     }
 
+
+    // =========================================================
+    // BUDGET INPUT CHANGES
+    // =========================================================
+
+    private async Task OnBudgetInputsChangedAsync()
+    {
+        if (!IsLoading &&
+            Type.Equals(
+                "Expense",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            await EvaluateBudgetAsync();
+        }
+    }
+
+
+    // =========================================================
+    // BUDGET EVALUATION
+    // =========================================================
+
+    private async Task EvaluateBudgetAsync()
+    {
+        ClearBudgetEvaluationOnly();
+
+        if (CurrentUserId == null ||
+            Transaction.CategoryId <= 0 ||
+            Transaction.Amount <= 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var budget =
+                await TransactionService
+                    .GetBudgetForTransactionAsync(Transaction);
+
+            if (budget == null)
+            {
+                return;
+            }
+
+            HasBudget = true;
+
+            BudgetLimit = budget.LimitAmount;
+
+            CurrentSpent = budget.SpentAmount;
+
+            ProjectedSpent =
+                CurrentSpent + Transaction.Amount;
+
+            var category =
+                Categories.FirstOrDefault(
+                    c => c.CategoryId ==
+                         Transaction.CategoryId);
+
+            BudgetCategoryName =
+                category?.CategoryName ??
+                budget.CategoryName;
+
+            if (ProjectedSpent > BudgetLimit)
+            {
+                IsBudgetExceeded = true;
+
+                BudgetStatus =
+                    $"This expense will take {BudgetCategoryName} to " +
+                    $"₹{ProjectedSpent:N2}, which is ₹{ProjectedSpent - BudgetLimit:N2} " +
+                    $"above the monthly budget.";
+            }
+            else if (ProjectedSpent >=
+                     BudgetLimit * 0.80m)
+            {
+                var remaining =
+                    BudgetLimit - ProjectedSpent;
+
+                BudgetStatus =
+                    $"This expense will leave only ₹{remaining:N2} remaining " +
+                    $"in your monthly {BudgetCategoryName} budget.";
+            }
+
+            var recommendation =
+                await BudgetRecommendationService
+                    .GetRecommendationAsync(
+                        CurrentUserId.Value,
+                        budget);
+
+            Recommendation =
+                recommendation.HasRecommendation
+                    ? recommendation
+                    : null;
+        }
+        catch (Exception)
+        {
+            // Budget intelligence must never stop
+            // a valid transaction from being entered.
+
+            Recommendation = null;
+        }
+    }
+
+
+    // =========================================================
+    // APPLY BUDGET RECOMMENDATION
+    // =========================================================
+
+    private async Task ApplyBudgetRecommendationAsync()
+    {
+        if (CurrentUserId == null ||
+            Recommendation == null ||
+            !Recommendation.HasRecommendation)
+        {
+            return;
+        }
+
+        try
+        {
+            IsUpdatingBudget = true;
+
+            ErrorMessage = null;
+
+            BudgetUpdateMessage = null;
+
+            var updated =
+                await BudgetRecommendationService
+                    .ApplyRecommendationAsync(
+                        CurrentUserId.Value,
+                        Recommendation.BudgetId);
+
+            if (!updated)
+            {
+                ErrorMessage =
+                    "The budget could not be updated. Please refresh and try again.";
+
+                return;
+            }
+
+            BudgetUpdateMessage =
+                $"Budget for {Recommendation.CategoryName} " +
+                $"updated to ₹{Recommendation.SuggestedBudget:N0}.";
+
+            await EvaluateBudgetAsync();
+        }
+        catch (Exception)
+        {
+            ErrorMessage =
+                "Unable to update the budget right now.";
+        }
+        finally
+        {
+            IsUpdatingBudget = false;
+        }
+    }
+
+
+    // =========================================================
+    // SAVE TRANSACTION
+    // =========================================================
+
     private async Task SaveTransaction()
     {
         try
@@ -331,22 +698,8 @@ else
             IsSaving = true;
 
             ErrorMessage = null;
-            BudgetWarning = null;
 
-            var authenticationState =
-                await AuthenticationStateProvider
-                    .GetAuthenticationStateAsync();
-
-            var user = authenticationState.User;
-
-            var claim =
-                user.FindFirst(
-                    ClaimTypes.NameIdentifier);
-
-            if (claim == null ||
-                !int.TryParse(
-                    claim.Value,
-                    out var userId))
+            if (CurrentUserId == null)
             {
                 ErrorMessage =
                     "Unable to identify the current user.";
@@ -354,60 +707,77 @@ else
                 return;
             }
 
-            Transaction.UserId = userId;
-            Transaction.TransactionType = Type;
+
+            // -------------------------------------------------
+            // EXPENSE
+            // -------------------------------------------------
 
             if (Type.Equals(
                     "Expense",
                     StringComparison.OrdinalIgnoreCase))
             {
-                var budget =
-                    await TransactionService
-                        .GetBudgetForTransactionAsync(
-                            Transaction);
+                await EvaluateBudgetAsync();
 
-                if (budget != null)
+                // Budget is a warning.
+                // The user can override it.
+                //
+                // Net balance is NOT a warning.
+                // TransactionRepository rejects an expense
+                // that exceeds available balance.
+
+                if (HasBudget &&
+                    ProjectedSpent > BudgetLimit)
                 {
-                    CurrentSpent = budget.SpentAmount;
+                    ShowBudgetConfirmation = true;
 
-                    ProjectedSpent =
-                        CurrentSpent + Transaction.Amount;
-
-                    BudgetLimit = budget.LimitAmount;
-
-                    var category =
-                        Categories.FirstOrDefault(
-                            c => c.CategoryId ==
-                                 Transaction.CategoryId);
-
-                    BudgetCategoryName =
-                        category?.CategoryName ??
-                        budget.CategoryName;
-
-                    if (ProjectedSpent > BudgetLimit)
-                    {
-                        ShowBudgetConfirmation = true;
-
-                        return;
-                    }
-
-                    if (ProjectedSpent >= BudgetLimit * 0.80m)
-                    {
-                        var remaining =
-                            BudgetLimit - ProjectedSpent;
-
-                        BudgetWarning =
-                            $"This expense will leave only " +
-                            $"₹{remaining:N2} remaining in your " +
-                            $"monthly {BudgetCategoryName} budget.";
-                    }
+                    return;
                 }
+
+
+                Transaction.UserId =
+                    CurrentUserId.Value;
+
+                Transaction.TransactionType =
+                    "Expense";
+
+                await TransactionService
+                    .AddTransactionAsync(
+                        Transaction);
+
+                Navigation.NavigateTo(
+                    "/transactions");
+
+                return;
             }
 
-            await TransactionService
-                .AddTransactionAsync(Transaction);
 
-            Navigation.NavigateTo("/transactions");
+            // -------------------------------------------------
+            // INCOME
+            // -------------------------------------------------
+
+            Transaction.UserId =
+                CurrentUserId.Value;
+
+            Transaction.TransactionType =
+                "Income";
+
+            await TransactionService
+                .AddTransactionAsync(
+                    Transaction);
+
+            Navigation.NavigateTo(
+                "/transactions");
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Balance protection happens in the repository.
+            //
+            // If available balance is insufficient,
+            // the repository throws and rolls back.
+
+            ErrorMessage = ex.Message;
+
+            ShowBudgetConfirmation = false;
         }
         catch (Exception)
         {
@@ -419,29 +789,85 @@ else
             IsSaving = false;
         }
     }
+
+
+    // =========================================================
+    // PROCEED DESPITE BUDGET
+    // =========================================================
 
     private async Task ProceedDespiteBudget()
     {
         try
         {
             IsSaving = true;
+
             ErrorMessage = null;
 
-            await TransactionService
-                .AddTransactionAsync(Transaction);
+            if (CurrentUserId == null)
+            {
+                ErrorMessage =
+                    "Unable to identify the current user.";
 
-            Navigation.NavigateTo("/transactions");
+                return;
+            }
+
+
+            // -------------------------------------------------
+            // IMPORTANT
+            // -------------------------------------------------
+            //
+            // This bypasses ONLY the budget warning.
+            //
+            // It does NOT bypass:
+            //
+            // 1. User validation
+            // 2. Category validation
+            // 3. Amount validation
+            // 4. Net balance validation
+            // 5. Database validation
+            //
+            // TransactionService remains responsible for
+            // processing the actual transaction.
+            // -------------------------------------------------
+
+            Transaction.UserId =
+                CurrentUserId.Value;
+
+            Transaction.TransactionType =
+                "Expense";
+
+            await TransactionService
+                .AddTransactionAsync(
+                    Transaction);
+
+            Navigation.NavigateTo(
+                "/transactions");
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Insufficient balance.
+            //
+            // The transaction should NOT have been inserted.
+
+            ErrorMessage = ex.Message;
+
+            ShowBudgetConfirmation = false;
         }
         catch (Exception)
         {
             ErrorMessage =
-                "Unable to save the transaction right now.";
+                "Unable to process the transaction right now.";
         }
         finally
         {
             IsSaving = false;
         }
     }
+
+
+    // =========================================================
+    // BUDGET OVERRIDE
+    // =========================================================
 
     private void CancelBudgetOverride()
     {
@@ -450,12 +876,46 @@ else
         ErrorMessage = null;
     }
 
+
+    // =========================================================
+    // CLEAR BUDGET STATE
+    // =========================================================
+
+    private void ClearBudgetEvaluationOnly()
+    {
+        BudgetStatus = null;
+
+        BudgetUpdateMessage = null;
+
+        ShowBudgetConfirmation = false;
+
+        IsBudgetExceeded = false;
+
+        HasBudget = false;
+
+        BudgetLimit = 0m;
+
+        CurrentSpent = 0m;
+
+        ProjectedSpent = 0m;
+
+        BudgetCategoryName = "";
+
+        Recommendation = null;
+    }
+
+
     private void ClearBudgetMessages()
     {
         ErrorMessage = null;
-        BudgetWarning = null;
-        ShowBudgetConfirmation = false;
+
+        ClearBudgetEvaluationOnly();
     }
+
+
+    // =========================================================
+    // CANCEL
+    // =========================================================
 
     private void Cancel()
     {

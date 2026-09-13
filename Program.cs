@@ -4,6 +4,7 @@ using FinTrack.Repositories;
 using FinTrack.Services.Interfaces;
 using FinTrack.Services.Implementations;
 using FinTrack.Services.Background;
+using FinTrack.Models.Payments;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -61,15 +62,27 @@ builder.Services.AddScoped<
     IReportRepository,
     ReportRepository>();
 
+builder.Services.AddScoped<
+    IPaymentRepository,
+    PaymentRepository>();
+
 // Recurring Payments
 builder.Services.AddScoped<
     IRecurringPaymentRepository,
     RecurringPaymentRepository>();
 
+builder.Services.AddScoped<
+    IBudgetRecommendationService,
+    BudgetRecommendationService>();
+
 
 // ============================================================
 // SERVICES
 // ============================================================
+
+builder.Services.AddScoped<
+    IPaymentService,
+    PaymentService>();
 
 builder.Services.AddScoped<
     IDashboardService,
@@ -122,7 +135,8 @@ builder.Services
         CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/account/login";
+        options.LoginPath =
+            "/account/login";
 
         options.AccessDeniedPath =
             "/access-denied";
@@ -309,7 +323,6 @@ app.MapPost(
                 });
         }
 
-
         var claims = new List<Claim>
         {
             new Claim(
@@ -331,29 +344,24 @@ app.MapPost(
                     : "User")
         };
 
-
         var identity =
             new ClaimsIdentity(
                 claims,
                 CookieAuthenticationDefaults
                     .AuthenticationScheme);
 
-
         var principal =
             new ClaimsPrincipal(identity);
-
 
         await httpContext.SignInAsync(
             CookieAuthenticationDefaults
                 .AuthenticationScheme,
             principal);
 
-
         var redirectUrl =
             user.RoleId == 1
                 ? "/transactions"
                 : "/dashboard";
-
 
         return Results.Ok(
             new
@@ -378,6 +386,26 @@ app.MapPost(
 
         return Results.Ok();
     });
+
+
+// ============================================================
+// PAYMENT API - TESTING
+// ============================================================
+
+app.MapPost(
+    "/api/payments",
+    async (
+        PaymentRequest request,
+        IPaymentService paymentService) =>
+    {
+        var result =
+            await paymentService.ProcessPaymentAsync(request);
+
+        return result.Success
+            ? Results.Ok(result)
+            : Results.BadRequest(result);
+    })
+    .RequireAuthorization();
 
 
 // ============================================================
