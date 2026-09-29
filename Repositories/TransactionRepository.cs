@@ -1,6 +1,7 @@
 using Dapper;
 using FinTrack.Models;
 using Microsoft.Data.SqlClient;
+using System.Data;
 
 namespace FinTrack.Repositories;
 
@@ -110,7 +111,8 @@ public class TransactionRepository : ITransactionRepository
         await connection.OpenAsync();
 
         using var dbTransaction =
-            await connection.BeginTransactionAsync();
+            await connection.BeginTransactionAsync(
+                IsolationLevel.Serializable);
 
         try
         {
@@ -308,7 +310,8 @@ public class TransactionRepository : ITransactionRepository
                     TransactionDate,
                     Description,
                     TransactionType,
-                    RecurringPaymentId
+                    RecurringPaymentId,
+                    PaymentId
                 FROM Transactions
                 WHERE
                     TransactionId = @TransactionId
@@ -331,6 +334,18 @@ public class TransactionRepository : ITransactionRepository
             {
                 throw new InvalidOperationException(
                     "Transaction not found.");
+            }
+
+            // -------------------------------------------------
+            // PAYMENT LEDGER PROTECTION
+            // -------------------------------------------------
+            // Transactions created as part of a completed payment
+            // are financial ledger legs and must not be edited.
+            // A payment must remain balanced between sender and receiver.
+            if (original.PaymentId.HasValue)
+            {
+                throw new InvalidOperationException(
+                    "Payment transactions cannot be edited.");
             }
 
             // -------------------------------------------------
@@ -440,6 +455,37 @@ public class TransactionRepository : ITransactionRepository
         int userId)
     {
         using var connection = GetConnection();
+
+        await connection.OpenAsync();
+
+        // -------------------------------------------------
+        // PAYMENT LEDGER PROTECTION
+        // -------------------------------------------------
+        // A transaction linked to a payment is one side of a
+        // completed financial transfer. It must not be deleted
+        // independently because that would break the sender/
+        // receiver ledger relationship.
+        const string paymentCheckSql = @"
+            SELECT PaymentId
+            FROM Transactions
+            WHERE
+                TransactionId = @TransactionId
+                AND UserId = @UserId;";
+
+        var paymentId =
+            await connection.ExecuteScalarAsync<int?>(
+                paymentCheckSql,
+                new
+                {
+                    TransactionId = transactionId,
+                    UserId = userId
+                });
+
+        if (paymentId.HasValue)
+        {
+            throw new InvalidOperationException(
+                "Payment transactions cannot be deleted.");
+        }
 
         const string sql = @"
             DELETE FROM Transactions

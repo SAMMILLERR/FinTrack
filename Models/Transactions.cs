@@ -23,9 +23,17 @@ public class Transaction
 
     [StringLength(250)]
     public string? Description { get; set; }
+
     public string TransactionType { get; set; } = "";
 
     public DateTime CreatedOn { get; set; }
+
     public string UserName { get; set; } = "";
+
     public int? RecurringPaymentId { get; set; }
+
+    // Links a transaction to the payment that created it.
+    // NULL = normal/manual transaction.
+    // Non-NULL = transaction created as part of a payment.
+    public int? PaymentId { get; set; }
 }

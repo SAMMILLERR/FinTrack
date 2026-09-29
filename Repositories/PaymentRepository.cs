@@ -1,6 +1,8 @@
 using Dapper;
 using FinTrack.Models.Payments;
 using Microsoft.Data.SqlClient;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace FinTrack.Repositories;
 
@@ -22,6 +24,15 @@ internal sealed class UserPaymentInfo
             ? $"User #{UserId}"
             : name;
     }
+}
+
+internal sealed class IdempotentPayment
+{
+    public string RequestFingerprint { get; set; } = "";
+    public int? PaymentId { get; set; }
+    public string? Status { get; set; }
+    public int? SenderTransactionId { get; set; }
+    public int? ReceiverTransactionId { get; set; }
 }
 
 
@@ -112,6 +123,106 @@ public class PaymentRepository : IPaymentRepository
                     "Please select an expense category.");
             }
 
+            if (string.IsNullOrWhiteSpace(request.IdempotencyKey))
+            {
+                throw new InvalidOperationException(
+                    "A payment idempotency key is required.");
+            }
+
+            var idempotencyKey = request.IdempotencyKey.Trim();
+
+            if (idempotencyKey.Length > 128)
+            {
+                throw new InvalidOperationException(
+                    "The payment idempotency key is too long.");
+            }
+
+            var requestFingerprint =
+                ComputeRequestFingerprint(request);
+
+            // The unique key is scoped to the authenticated sender. UPDLOCK and
+            // HOLDLOCK prevent two simultaneous retries from both inserting it.
+            const string existingPaymentSql = @"
+                SELECT
+                    pi.RequestFingerprint,
+                    pi.PaymentId,
+                    p.Status,
+                    p.SenderTransactionId,
+                    p.ReceiverTransactionId
+                FROM PaymentIdempotency pi WITH (UPDLOCK, HOLDLOCK)
+                LEFT JOIN Payments p
+                    ON p.PaymentId = pi.PaymentId
+                WHERE pi.InitiatedByUserId = @FromUserId
+                  AND pi.IdempotencyKey = @IdempotencyKey;";
+
+            var existingPayment =
+                await connection.QueryFirstOrDefaultAsync<IdempotentPayment>(
+                    existingPaymentSql,
+                    new
+                    {
+                        request.FromUserId,
+                        IdempotencyKey = idempotencyKey
+                    },
+                    transaction);
+
+            if (existingPayment != null)
+            {
+                if (!string.Equals(
+                        existingPayment.RequestFingerprint,
+                        requestFingerprint,
+                        StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        "This idempotency key was already used for a different payment.");
+                }
+
+                if (existingPayment.PaymentId.HasValue &&
+                    string.Equals(
+                        existingPayment.Status,
+                        PaymentStatus.Completed.ToString(),
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    await transaction.CommitAsync();
+
+                    return new PaymentResult
+                    {
+                        Success = true,
+                        Status = PaymentStatus.Completed,
+                        Message = "Payment was already completed.",
+                        PaymentId = existingPayment.PaymentId.Value,
+                        SenderTransactionId = existingPayment.SenderTransactionId,
+                        ReceiverTransactionId = existingPayment.ReceiverTransactionId
+                    };
+                }
+
+                throw new InvalidOperationException(
+                    "A payment with this idempotency key is still being processed.");
+            }
+
+            const string createIdempotencySql = @"
+                INSERT INTO PaymentIdempotency
+                (
+                    InitiatedByUserId,
+                    IdempotencyKey,
+                    RequestFingerprint
+                )
+                VALUES
+                (
+                    @FromUserId,
+                    @IdempotencyKey,
+                    @RequestFingerprint
+                );";
+
+            await connection.ExecuteAsync(
+                createIdempotencySql,
+                new
+                {
+                    request.FromUserId,
+                    IdempotencyKey = idempotencyKey,
+                    RequestFingerprint = requestFingerprint
+                },
+                transaction);
+
 
             // =================================================
             // CHECK USERS
@@ -127,7 +238,8 @@ public class PaymentRepository : IPaymentRepository
                 (
                     @FromUserId,
                     @ToUserId
-                );";
+                )
+                AND IsActive = 1;";
 
 
             var users =
@@ -429,7 +541,8 @@ public class PaymentRepository : IPaymentRepository
                     TransactionDate,
                     Description,
                     TransactionType,
-                    RecurringPaymentId
+                    RecurringPaymentId,
+                    PaymentId
                 )
                 VALUES
                 (
@@ -439,7 +552,8 @@ public class PaymentRepository : IPaymentRepository
                     @PaymentDate,
                     @Description,
                     'Expense',
-                    @RecurringPaymentId
+                    @RecurringPaymentId,
+                    @PaymentId
                 );
 
                 SELECT CAST(
@@ -475,7 +589,10 @@ public class PaymentRepository : IPaymentRepository
                             ),
 
                         RecurringPaymentId =
-                            request.RecurringPaymentId
+                            request.RecurringPaymentId,
+
+                        PaymentId =
+                            paymentId
                     },
                     transaction);
 
@@ -493,7 +610,8 @@ public class PaymentRepository : IPaymentRepository
                     TransactionDate,
                     Description,
                     TransactionType,
-                    RecurringPaymentId
+                    RecurringPaymentId,
+                    PaymentId
                 )
                 VALUES
                 (
@@ -503,7 +621,8 @@ public class PaymentRepository : IPaymentRepository
                     @PaymentDate,
                     @Description,
                     'Income',
-                    @RecurringPaymentId
+                    @RecurringPaymentId,
+                    @PaymentId
                 );
 
                 SELECT CAST(
@@ -539,7 +658,10 @@ public class PaymentRepository : IPaymentRepository
                             ),
 
                         RecurringPaymentId =
-                            request.RecurringPaymentId
+                            request.RecurringPaymentId,
+
+                        PaymentId =
+                            paymentId
                     },
                     transaction);
 
@@ -582,6 +704,22 @@ public class PaymentRepository : IPaymentRepository
 
                     ReceiverTransactionId =
                         receiverTransactionId
+                },
+                transaction);
+
+            const string completeIdempotencySql = @"
+                UPDATE PaymentIdempotency
+                SET PaymentId = @PaymentId
+                WHERE InitiatedByUserId = @FromUserId
+                  AND IdempotencyKey = @IdempotencyKey;";
+
+            await connection.ExecuteAsync(
+                completeIdempotencySql,
+                new
+                {
+                    PaymentId = paymentId,
+                    request.FromUserId,
+                    IdempotencyKey = idempotencyKey
                 },
                 transaction);
 
@@ -694,5 +832,24 @@ public class PaymentRepository : IPaymentRepository
                         : "The payment could not be processed."
             };
         }
+    }
+
+    private static string ComputeRequestFingerprint(
+        PaymentRequest request)
+    {
+        var payload = string.Join(
+            "|",
+            request.ToUserId,
+            request.Amount.ToString(
+                "0.############################",
+                System.Globalization.CultureInfo.InvariantCulture),
+            request.ExpenseCategoryId,
+            request.PaymentType,
+            request.RecurringPaymentId?.ToString() ?? "",
+            request.Description?.Trim() ?? "");
+
+        return Convert.ToHexString(
+            SHA256.HashData(
+                Encoding.UTF8.GetBytes(payload)));
     }
 }

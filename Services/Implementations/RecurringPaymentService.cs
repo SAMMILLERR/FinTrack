@@ -247,7 +247,10 @@ public class RecurringPaymentService : IRecurringPaymentService
                         recurringPayment.CategoryId,
 
                     RecurringPaymentId =
-                        recurringPayment.RecurringPaymentId
+                        recurringPayment.RecurringPaymentId,
+
+                    IdempotencyKey =
+                        $"recurring:{recurringPayment.RecurringPaymentId}:{occurrenceDate:yyyyMMdd}"
                 };
 
                 // -------------------------------------------------

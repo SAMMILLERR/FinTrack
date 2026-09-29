@@ -27,6 +27,16 @@ public class PaymentService : IPaymentService
             };
         }
 
+        if (string.IsNullOrWhiteSpace(request.IdempotencyKey))
+        {
+            return new PaymentResult
+            {
+                Success = false,
+                Status = PaymentStatus.Failed,
+                Message = "A payment idempotency key is required."
+            };
+        }
+
         return await _paymentRepository
             .ProcessTransferAsync(request);
     }

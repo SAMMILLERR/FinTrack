@@ -395,9 +395,45 @@ app.MapPost(
 app.MapPost(
     "/api/payments",
     async (
+        HttpContext httpContext,
+        HttpRequest httpRequest,
         PaymentRequest request,
         IPaymentService paymentService) =>
     {
+        var userIdClaim =
+            httpContext.User.FindFirst(
+                ClaimTypes.NameIdentifier);
+
+        if (userIdClaim == null ||
+            !int.TryParse(userIdClaim.Value, out var senderUserId))
+        {
+            return Results.Forbid();
+        }
+
+        var idempotencyKey =
+            httpRequest.Headers["Idempotency-Key"]
+                .ToString()
+                .Trim();
+
+        if (string.IsNullOrWhiteSpace(idempotencyKey) ||
+            idempotencyKey.Length > 128)
+        {
+            return Results.BadRequest(
+                new
+                {
+                    message =
+                        "A valid Idempotency-Key header is required for payments."
+                });
+        }
+
+        // Do not trust any financial identity or workflow fields from the
+        // browser. The sender comes only from the authenticated cookie claim.
+        request.FromUserId = senderUserId;
+        request.PaymentDate = DateTime.UtcNow;
+        request.PaymentType = PaymentType.Manual;
+        request.RecurringPaymentId = null;
+        request.IdempotencyKey = idempotencyKey;
+
         var result =
             await paymentService.ProcessPaymentAsync(request);
 
@@ -414,7 +450,75 @@ app.MapPost(
 
 app.MapStaticAssets();
 
+// ============================================================
+// TRANSACTION API - MCP
+// ============================================================
 
+app.MapGet(
+    "/api/transactions",
+    async (
+        HttpContext httpContext,
+        ITransactionService transactionService,
+        DateTime? fromDate,
+        DateTime? toDate,
+        int? categoryId,
+        string? type,
+        int page = 1,
+        int pageSize = 100) =>
+    {
+        var userIdClaim =
+            httpContext.User.FindFirst(
+                ClaimTypes.NameIdentifier);
+
+        if (userIdClaim == null ||
+            !int.TryParse(
+                userIdClaim.Value,
+                out var userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        if (fromDate.HasValue &&
+            toDate.HasValue &&
+            fromDate > toDate)
+        {
+            return Results.BadRequest(
+                new
+                {
+                    message =
+                        "fromDate cannot be later than toDate."
+                });
+        }
+
+        if (type != null &&
+            !type.Equals(
+                "Income",
+                StringComparison.OrdinalIgnoreCase) &&
+            !type.Equals(
+                "Expense",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return Results.BadRequest(
+                new
+                {
+                    message =
+                        "type must be either Income or Expense."
+                });
+        }
+
+        var result =
+            await transactionService.GetTransactionsAsync(
+                userId,
+                fromDate,
+                toDate,
+                categoryId,
+                type,
+                page,
+                pageSize);
+
+        return Results.Ok(result);
+    })
+    .RequireAuthorization();
 // ============================================================
 // BLAZOR COMPONENTS
 // ============================================================
